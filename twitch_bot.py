@@ -106,21 +106,21 @@ class AlertComponent(commands.Component):
         self.http_client = httpx.AsyncClient()
 
     @commands.Component.listener()
-    async def event_channel_follow(self, event: twitchio.ChannelFollow) -> None:
+    async def event_follow(self, payload: twitchio.ChannelFollow) -> None:
         # twitchio.ChannelFollow モデルから情報を取得
-        user_id = event.user.id
-        user_name = event.user.name
+        user_id = payload.user.id
+        user_name = payload.user.name
         logger.info("[Alert] フォロー検知: %s (ID: %s)", user_name, user_id)
 
         # AI処理へタスクを逃がす
         await self.handle_ai_alert(user_id, user_name, "follow")
 
     @commands.Component.listener()
-    async def event_channel_raid(self, event: twitchio.ChannelRaid) -> None:
+    async def event_raid(self, payload: twitchio.ChannelRaid) -> None:
         # twitchio.ChannelRaid モデルから情報を取得
-        user_id = event.from_broadcaster.id
-        user_name = event.from_broadcaster.name
-        viewers = event.viewers
+        user_id = payload.from_broadcaster.id
+        user_name = payload.from_broadcaster.name
+        viewers = payload.viewers
         logger.info("[Alert] レイド検集: %s から %s 人", user_name, viewers)
 
         await self.handle_ai_alert(user_id, user_name, "raid", viewers=viewers)
