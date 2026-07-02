@@ -207,8 +207,8 @@ class AlertComponent(commands.Component):
 
         if hasattr(g, "ws_manager"):
             # React側で画像を表示しやすいよう、URLを調整
-            # 例: /output/fuyuka_ai.png -> http://localhost:8000/output/fuyuka_ai.png
-            server_url = "http://localhost:8000"
+            # 例: /output/fuyuka_ai.png -> http://localhost:34510/output/fuyuka_ai.png
+            server_url = "http://localhost:34510"
             card_dict["image_url"] = f"{server_url}{card_dict['image_path']}" if card_dict["image_path"] else None
             
             print("[WS] フロントエンドへ最新のカードデータを送信します...")
@@ -265,7 +265,7 @@ class AlertComponent(commands.Component):
 
             # 3. WebSocket配信用に画像URLを組み立て
             if hasattr(g, "ws_manager"):
-                server_url = "http://localhost:8000"
+                server_url = "http://localhost:34510"
                 # すでにフルURLが入っていない場合のみ組み立てる
                 if card_dict.get("image_path") and not card_dict.get("image_url"):
                     card_dict["image_url"] = f"{server_url}{card_dict['image_path']}"

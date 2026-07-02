@@ -62,7 +62,7 @@ output_dir = os.path.join(g.base_dir, "output")
 os.makedirs(output_dir, exist_ok=True)
 app.mount("/output", StaticFiles(directory=output_dir), name="output")
 
-# WebSocket エンドポイント (ws://localhost:8000/ws)
+# WebSocket エンドポイント (ws://localhost:34510/ws)
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await g.ws_manager.connect(websocket)
@@ -77,7 +77,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
 # FastAPIを裏側で動かすための非同期タスク
 async def run_web_server():
-    config = uvicorn.Config(app, host="127.0.0.1", port=8000, log_level="info")
+    config = uvicorn.Config(app, host="127.0.0.1", port=34510, log_level="info")
     server = uvicorn.Server(config)
     await server.serve()
 

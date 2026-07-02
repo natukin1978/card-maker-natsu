@@ -1,15 +1,14 @@
 import { useEffect, useState, useRef } from "react";
 import ReconnectingWebSocket from 'reconnecting-websocket';
 
-// バックエンドの CharacterParams に100%完全に一致させた型定義
 interface CharacterCard {
-  display_name: string;  // Twitchの表示名
-  title: string;         // 二つ名
-  attribute: string;     // 属性（炎、水など）
-  attack_power: number;  // 攻撃力
-  defense_power: number; // 防御力
-  skill_name: string;    // 必殺技名
-  flavor_text: string;   // 説明文
+  display_name: string;
+  title: string;
+  attribute: string;
+  attack_power: number;
+  defense_power: number;
+  skill_name: string;
+  flavor_text: string;
   image_url: string | null;
 }
 
@@ -19,15 +18,13 @@ function App() {
   const socketRef = useRef<ReconnectingWebSocket | null>(null);
 
   useEffect(() => {
-    const rws = new ReconnectingWebSocket("ws://localhost:8000/ws");
+    const rws = new ReconnectingWebSocket("ws://localhost:34510/ws");
     socketRef.current = rws;
 
     rws.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
-        
         if (message.event === "NEW_CARD") {
-          console.log("Received new card:", message.data);
           setCurrentCard(message.data);
           setActive(true);
         }
@@ -36,83 +33,152 @@ function App() {
       }
     };
 
-    return () => {
-      rws.close();
-    };
+    return () => rws.close();
   }, []);
+
+  // 属性名に応じて、用意したアイコン画像のパスを切り替える関数
+  const getAttributeIcon = (attr: string) => {
+    // 実際に対応する画像を frontend/public/assets/ などの配下に置くと読み込めます
+    if (attr.includes("炎") || attr.includes("火")) return "/assets/icon_fire.png";
+    if (attr.includes("水")) return "/assets/icon_water.png";
+    if (attr.includes("風") || attr.includes("木")) return "/assets/icon_wind.png";
+    if (attr.includes("光")) return "/assets/icon_light.png";
+    if (attr.includes("闇")) return "/assets/icon_dark.png";
+    return "/assets/icon_default.png"; // フォールバック
+  };
 
   return (
     <div style={{
       width: "100vw",
       height: "100vh",
-      backgroundColor: "transparent", // OBS透過用
+      backgroundColor: "transparent",
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
       overflow: "hidden",
-      fontFamily: "sans-serif"
+      fontFamily: "'Helvetica Neue', Arial, sans-serif",
     }}>
       {active && currentCard && (
         <div style={{
-          padding: "20px",
-          backgroundColor: "rgba(0, 0, 0, 0.85)",
+          width: "380px",
+          backgroundColor: "rgba(20, 15, 25, 0.95)", // 少し高級感のある紫黒
           color: "white",
-          borderRadius: "15px",
-          border: "2px solid #ff007f",
-          textAlign: "center",
-          maxWidth: "400px",
-          boxShadow: "0 0 20px rgba(255, 0, 127, 0.5)"
+          borderRadius: "20px",
+          border: "2px solid rgba(255, 0, 127, 0.6)",
+          boxShadow: "0 0 30px rgba(255, 0, 127, 0.3), inset 0 0 15px rgba(255, 255, 255, 0.05)",
+          overflow: "hidden",
         }}>
-          {/* 二つ名とユーザー表示名 */}
-          <p style={{ color: "#cyan", fontSize: "14px", margin: "0 0 5px 0", letterSpacing: "2px" }}>
-            【{currentCard.title}】
-          </p>
-          <h2 style={{ margin: "0 0 15px 0", fontSize: "24px" }}>
-            {currentCard.display_name}
-          </h2>
           
-          {/* 生成されたイラスト */}
-          {currentCard.image_url && (
+          {/* ==================== 1. イラスト & バッジ領域 ==================== */}
+          <div style={{ position: "relative", width: "100%", aspectRatio: "1 / 1" }}>
+            
+            {/* 生成されたメインイラスト */}
+            {currentCard.image_url && (
+              <img 
+                src={currentCard.image_url} 
+                alt="Character" 
+                style={{ width: "100%", height: "100%", objectFit: "cover" }} 
+              />
+            )}
+
+            {/* [右上] レアリティバッジ (画像) */}
             <img 
-              src={currentCard.image_url} 
-              alt="Character" 
-              style={{ width: "100%", borderRadius: "10px", marginBottom: "15px" }} 
+              src="/assets/badge_ssr.png" 
+              alt="SSR" 
+              style={{
+                position: "absolute",
+                top: "12px",
+                right: "12px",
+                width: "85px", // サイズは適宜調整してください
+                filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.5))"
+              }}
+              // まだ画像が無いときのための文字フォールバック（デバッグ用）
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
             />
-          )}
 
-          {/* 属性・ステータス表示 */}
-          <div style={{ 
-            display: "flex", 
-            justifyContent: "space-between", 
-            backgroundColor: "rgba(255,255,255,0.1)", 
-            padding: "8px 12px", 
-            borderRadius: "8px",
-            fontSize: "14px",
-            marginBottom: "12px"
-          }}>
-            <div>属性: <span style={{ color: "#ffeb3b", fontWeight: "bold" }}>{currentCard.attribute}</span></div>
-            <div>ATK: <span style={{ color: "#ff5252", fontWeight: "bold" }}>{currentCard.attack_power}</span></div>
-            <div>DEF: <span style={{ color: "#4caf50", fontWeight: "bold" }}>{currentCard.defense_power}</span></div>
+            {/* [左上] 属性バッジ (画像) */}
+            <img 
+              src={getAttributeIcon(currentCard.attribute)} 
+              alt={currentCard.attribute} 
+              style={{
+                position: "absolute",
+                top: "12px",
+                left: "12px",
+                width: "50px",
+                filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.5))"
+              }}
+              onError={(e) => { e.currentTarget.style.display = "none"; }}
+            />
+
+            {/* [イラスト下部] 二つ名と名前をグラデーション帯で重ねる */}
+            <div style={{
+              position: "absolute",
+              bottom: "0",
+              left: "0",
+              width: "100%",
+              background: "linear-gradient(to top, rgba(15,10,20,1) 0%, rgba(15,10,20,0.8) 70%, rgba(15,10,20,0) 100%)",
+              padding: "40px 16px 12px 16px",
+              boxSizing: "border-box",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-start"
+            }}>
+              <span style={{ color: "#00e5ff", fontSize: "13px", fontWeight: "bold", letterSpacing: "1px", textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}>
+                【{currentCard.title}】
+              </span>
+              <h2 style={{ margin: "4px 0 0 0", fontSize: "26px", fontWeight: "bold", textShadow: "0 2px 6px rgba(0,0,0,0.9)" }}>
+                {currentCard.display_name}
+              </h2>
+            </div>
           </div>
 
-          {/* 必殺技 */}
-          <div style={{ textAlign: "left", marginBottom: "12px", fontSize: "14px" }}>
-            <div style={{ color: "#e040fb", fontWeight: "bold" }}>必殺技: {currentCard.skill_name}</div>
+          {/* ==================== 2. ステータス & テキスト領域 ==================== */}
+          <div style={{ padding: "16px" }}>
+            
+            {/* ステータスバー */}
+            <div style={{ 
+              display: "flex", 
+              justifyContent: "space-around", 
+              backgroundColor: "rgba(255,255,255,0.06)", 
+              padding: "10px", 
+              borderRadius: "10px",
+              fontSize: "15px",
+              marginBottom: "14px",
+              border: "1px solid rgba(255,255,255,0.1)"
+            }}>
+              <div><span style={{ color: "#aaa", fontSize: "12px" }}>ATK</span> <b style={{ color: "#ff5252", fontSize: "18px" }}>{currentCard.attack_power}</b></div>
+              <div style={{ width: "1px", backgroundColor: "rgba(255,255,255,0.2)" }}></div>
+              <div><span style={{ color: "#aaa", fontSize: "12px" }}>DEF</span> <b style={{ color: "#4caf50", fontSize: "18px" }}>{currentCard.defense_power}</b></div>
+            </div>
+
+            {/* 必殺技 */}
+            <div style={{ 
+              backgroundColor: "rgba(224, 64, 251, 0.1)", 
+              padding: "8px 12px", 
+              borderRadius: "8px", 
+              borderLeft: "4px solid #e040fb",
+              marginBottom: "14px",
+              fontSize: "14px"
+            }}>
+              <span style={{ color: "#e040fb", fontWeight: "bold", display: "block", fontSize: "11px", marginBottom: "2px" }}>SKILL</span>
+              <b style={{ color: "#fff" }}>{currentCard.skill_name}</b>
+            </div>
+
+            {/* フレーバーテキスト */}
+            <p style={{ 
+              color: "#ddd", 
+              fontSize: "13px", 
+              lineHeight: "1.6",
+              margin: "0",
+              paddingTop: "4px",
+              textAlign: "left"
+            }}>
+              {currentCard.flavor_text}
+            </p>
           </div>
 
-          {/* フレーバーテキスト */}
-          <p style={{ 
-            fontStyle: "italic", 
-            color: "#ccc", 
-            fontSize: "13px", 
-            lineHeight: "1.5",
-            margin: "0",
-            textAlign: "left",
-            borderTop: "1px solid rgba(255,255,255,0.2)",
-            paddingTop: "10px"
-          }}>
-            {currentCard.flavor_text}
-          </p>
         </div>
       )}
     </div>
