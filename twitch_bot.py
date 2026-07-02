@@ -172,15 +172,18 @@ class AlertComponent(commands.Component):
             user_id = ctx.author.id
             target_name = ctx.author.name
         else:
-            # 名前が指定された場合はTwitchからユーザー情報を検索してIDを特定する
+            # 名前が指定された場合は、小文字に変換（.lower()）してTwitchからユーザー情報を検索
             try:
-                users = await self.bot.fetch_users(names=[name])
+                search_name = name.lower()
+                users = await self.bot.fetch_users(logins=[search_name])
                 if not users:
-                    await ctx.send(f"ユーザー {name} が見つかりませんでした。")
+                    await ctx.send(f"ユーザー「{name}」が見つかりませんでした。(Twitchに存在しない、または綴り間違いの可能性があります)")
                     return
-                user_id = users[0].id
+                # Twitchに登録されている正しいIDと表示名（大文字小文字が保持された名前）を取得
+                user_id = str(users[0].id)
                 target_name = users[0].name
-            except Exception:
+            except Exception as e:
+                print(f"[Error] 手動コマンドでのユーザー情報取得に失敗: {e}")
                 await ctx.send("ユーザー情報の取得に失敗しました。")
                 return
 
