@@ -106,3 +106,7 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+html, body, #root {
+  background-color: transparent !important; /* 背景を完全に透明に強制 */
+}
