@@ -120,7 +120,7 @@ class AlertComponent(commands.Component):
         # twitchio.ChannelRaid モデルから情報を取得
         user_id = payload.from_broadcaster.id
         user_name = payload.from_broadcaster.name
-        viewers = payload.viewers
+        viewers = payload.viewer_count
         logger.info("[Alert] レイド検集: %s から %s 人", user_name, viewers)
 
         await self.handle_ai_alert(user_id, user_name, "raid", viewers=viewers)
@@ -133,7 +133,7 @@ class AlertComponent(commands.Component):
                 logger.warning("ユーザー情報が見つかりませんでした: %s", user_name)
                 return
 
-            profile_image_url = users[0].profile_image_url
+            profile_image_url = users[0].profile_image.url
 
             # URLから画像をバイトデータとしてダウンロード
             response = await self.http_client.get(profile_image_url)
