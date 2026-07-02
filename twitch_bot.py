@@ -214,7 +214,7 @@ class AlertComponent(commands.Component):
             print("[WS] フロントエンドへ最新のカードデータを送信します...")
             await g.ws_manager.broadcast_json({
                 "event": "NEW_CARD",
-                "data": card_dict
+                "data": card_dict,
             })
         
         print("--------------------------------------------------")
@@ -233,6 +233,55 @@ class AlertComponent(commands.Component):
         await self.event_raid(MockRaid(target_raw_name))
         # await ctx.send(f"【AIカード生成】{target_raw_name} さんのカードデータを生成し、ローカルに保存しました！")
 
+    @commands.command(name="repost")
+    async def command_repost(self, ctx: commands.Context, target_user: str = None) -> None:
+        """
+        [デバッグ用] 保存済みのJSONデータを読み込んでWebSocketに再送する
+        使い方: !repost ユーザー名
+        """
+        # 権限チェックなどを入れる場合はここに（配信者のみなど）
+        # if ctx.author.name != ctx.channel.name: return
+
+        if not target_user:
+            await ctx.send("ユーザー名を指定してください。例: !repost fuyuka_ai")
+            return
+
+        # 小文字にしてファイル名と一致させる
+        file_base_name = target_user.lower()
+        output_dir = "output"
+        json_path = os.path.join(output_dir, f"{file_base_name}.json")
+
+        # 1. そもそもファイルが存在するかチェック
+        if not os.path.exists(json_path):
+            await ctx.send(f"[Error] {target_user} のカードデータが見つかりません。")
+            print(f"[Repost] ファイルが見つかりません: {json_path}")
+            return
+
+        try:
+            print(f"[Repost] {json_path} からデータをロード中...")
+            # 2. JSONファイルを読み込む
+            with open(json_path, "r", encoding="utf-8") as f:
+                card_dict = json.load(f)
+
+            # 3. WebSocket配信用に画像URLを組み立て
+            if hasattr(g, "ws_manager"):
+                server_url = "http://localhost:8000"
+                # すでにフルURLが入っていない場合のみ組み立てる
+                if card_dict.get("image_path") and not card_dict.get("image_url"):
+                    card_dict["image_url"] = f"{server_url}{card_dict['image_path']}"
+                
+                print(f"[WS] [Repost] {card_dict['display_name']} のデータを再送信します...")
+                await g.ws_manager.broadcast_json({
+                    "event": "NEW_CARD",
+                    "data": card_dict,
+                })
+                # await ctx.send(f"[Success] {card_dict['display_name']} のカードを再送しました！")
+            else:
+                print("[Warning] WebSocketマネージャー(g.ws_manager)が準備できていません。")
+
+        except Exception as e:
+            print(f"[Error] Repost処理中に例外が発生しました: {e}")
+            await ctx.send("データの再送中にエラーが発生しました。")
 
 async def setup_database(
     db: asqlite.Pool,

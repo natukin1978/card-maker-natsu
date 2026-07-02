@@ -5,9 +5,9 @@ import sys
 from typing import List
 
 import asqlite
+import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
-import uvicorn
 
 import global_value as g
 from config_helper import read_config
@@ -39,16 +39,17 @@ class ConnectionManager:
         print(f"[WS] クライアントが接続しました。現在の接続数: {len(self.active_connections)}")
 
     def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
         print(f"[WS] クライアントが切断しました。現在の接続数: {len(self.active_connections)}")
 
     async def broadcast_json(self, data: dict):
-        """全クライアントにJSONデータを送信"""
-        for connection in self.active_connections:
+        # 配信中に接続が切れたクライアントを掃除しながら送信
+        for connection in self.active_connections[:]:
             try:
                 await connection.send_json(data)
-            except Exception as e:
-                print(f"[WS] 送信エラー: {e}")
+            except Exception:
+                self.disconnect(connection)
 
 # グローバルにマネージャーを保持
 g.ws_manager = ConnectionManager()
@@ -69,6 +70,7 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             # クライアントからのメッセージ待ち受け（切断検知のため）
             data = await websocket.receive_text()
+            logger.info(data)
             # 必要であればクライアントからの命令をここで処理
     except WebSocketDisconnect:
         g.ws_manager.disconnect(websocket)
