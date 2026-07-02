@@ -3,3 +3,6 @@ httpx
 twitchio
 websockets
 asqlite @ git+https://github.com/Rapptz/asqlite.git
+
+fastapi
+uvicorn
