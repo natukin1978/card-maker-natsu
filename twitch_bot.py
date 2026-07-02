@@ -1,4 +1,6 @@
+import json
 import logging
+import os
 from typing import TYPE_CHECKING
 
 import asqlite
@@ -101,100 +103,116 @@ class TwitchBot(commands.AutoBot):
 
 class AlertComponent(commands.Component):
 
-    def __init__(self, bot: TwitchBot) -> None:
+    def __init__(self, bot: commands.Bot) -> None:
         super().__init__()
         self.bot = bot
         self.card_generator = CardGenerator()
-        # 画像ダウンロード用の非同期HTTPクライアント
         self.http_client = httpx.AsyncClient()
 
     # レイド検知
     @commands.Component.listener()
     async def event_raid(self, payload: twitchio.ChannelRaid) -> None:
-        user_id = payload.from_broadcaster.id
-        user_name = payload.from_broadcaster.name
+        raw_name = payload.from_broadcaster.name
         viewers = payload.viewer_count
-        print(f"[Raid 検知] {user_name} ({viewers} viewers)")
+        print(f"[Raid 検知] {raw_name} ({viewers} viewers)")
 
-        # アイコンの画像データを取得
-        image_bytes, mime_type = await self._fetch_profile_image(user_id)
+        image_bytes, mime_type, display_name = await self._fetch_profile_image_and_display_name(raw_name)
 
-        # 画像データも含めてカード生成サービスを呼び出す
         card_data = await self.card_generator.generate_character(
-            user_name=user_name,
+            user_name=display_name,
             event_type="raid",
             viewers=viewers,
             image_bytes=image_bytes,
             mime_type=mime_type
         )
-        self._process_card_data(user_name, card_data)
+        
+        # 修正：image_bytes と mime_type も後ろに渡す
+        await self._process_card_data(raw_name, display_name, card_data, image_bytes, mime_type)
 
-    # ユーザーIDからプロフィール画像をダウンロードする内部メソッド
-    async def _fetch_profile_image(self, user_id: str) -> tuple[bytes | None, str | None]:
+    # ユーザー情報（アイコン・表示名）を取得するメソッド
+    async def _fetch_profile_image_and_display_name(self, raw_name: str) -> tuple[bytes | None, str | None, str]:
         try:
-            users = await self.bot.fetch_users(ids=[int(user_id)])
+            users = await self.bot.fetch_users(logins=[raw_name.lower()])
             if not users:
-                print(f"[Warning] ユーザー情報が見つかりませんでした: ID {user_id}")
-                return None, None
+                print(f"[Warning] ユーザー情報が見つかりませんでした: {raw_name}")
+                return None, None, raw_name
 
-            profile_image_url = users[0].profile_image.url
+            user_obj = users[0]
+            # 表示名（display_name）があれば取得、なければ英小文字名をフォールバックに
+            display_name = user_obj.display_name if user_obj.display_name else user_obj.name
+            profile_image_url = user_obj.profile_image.url
 
+            # アイコンをダウンロード
             response = await self.http_client.get(profile_image_url)
             if response.status_code != 200:
-                print(f"[Error] アイコンのダウンロードに失敗しました。Status: {response.status_code}")
-                return None, None
+                print("[Error] アイコンのダウンロードに失敗しました。")
+                return None, None, display_name
 
             image_bytes = response.content
             mime_type = response.headers.get("Content-Type", "image/png")
-            print(f"[Success] アイコン取得成功: {users[0].name} ({mime_type})")
-            return image_bytes, mime_type
+            
+            print(f"[Success] ユーザー情報取得完了: {display_name} (ID: {raw_name})")
+            return image_bytes, mime_type, display_name
 
         except Exception as e:
-            print(f"[Error] アイコン取得中に例外が発生しました: {e}")
-            return None, None
+            print(f"[Error] ユーザー情報取得中に例外が発生しました: {e}")
+            return None, None, raw_name
 
-    def _process_card_data(self, user_name: str, card_data: CharacterParams) -> None:
-        print(f"--- キャラクターカードデータ生成完了: {user_name} ---")
-        print(f"二つ名: {card_data.title}")
-        print(f"属性: {card_data.attribute}")
-        print(f"攻撃力: {card_data.attack_power} / 防御力: {card_data.defense_power}")
-        print(f"必殺技: {card_data.skill_name}")
-        print(f"説明文: {card_data.flavor_text}")
-        print(f"画像生成プロンプト: {card_data.image_prompt}")
+    # パラメータと画像をローカルに保存する処理
+    async def _process_card_data(
+        self, 
+        raw_name: str, 
+        display_name: str, 
+        card_data: CharacterParams,
+        icon_bytes: bytes | None = None,
+        mime_type: str | None = None
+    ) -> None:
+        print(f"--- キャラクターカードデータ生成完了: {display_name} ---")
+        
+        output_dir = "output"
+        os.makedirs(output_dir, exist_ok=True)
+
+        # 1. Banana APIを呼び出してイラスト（画像）を生成（アイコン画像も一緒に渡す！）
+        generated_image_bytes = await self.card_generator.generate_image(
+            image_prompt=card_data.image_prompt,
+            icon_bytes=icon_bytes,
+            mime_type=mime_type
+        )
+        
+        file_base_name = raw_name.lower()
+
+        if generated_image_bytes:
+            image_path = os.path.join(output_dir, f"{file_base_name}.png")
+            with open(image_path, "wb") as f:
+                f.write(generated_image_bytes)
+            print(f"[Success] イラストを保存しました: {image_path}")
+        else:
+            print("[Warning] 画像生成に失敗したため、イメージファイルの保存をスキップします。")
+
+        # 2. パラメーター（JSON）を保存
+        card_dict = card_data.model_dump()
+        card_dict["display_name"] = display_name
+        card_dict["image_path"] = f"/{output_dir}/{file_base_name}.png" if generated_image_bytes else None
+        
+        json_path = os.path.join(output_dir, f"{file_base_name}.json")
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(card_dict, f, ensure_ascii=False, indent=4)
+        print(f"[Success] パラメーターJSONを保存しました: {json_path}")
         print("--------------------------------------------------")
-        print("[Mock] ここで Banana API を叩いて画像を生成します...")
 
     # 手動お遊び用コマンド
     @commands.command(name="make_card")
     async def make_card_command(self, ctx: commands.Context, name: str = None) -> None:
-        # 名前指定がない場合はコマンド送信者
-        if name is None:
-            user_id = ctx.author.id
-            target_name = ctx.author.name
-        else:
-            # 名前が指定された場合は、小文字に変換（.lower()）してTwitchからユーザー情報を検索
-            try:
-                search_name = name.lower()
-                users = await self.bot.fetch_users(logins=[search_name])
-                if not users:
-                    await ctx.send(f"ユーザー「{name}」が見つかりませんでした。(Twitchに存在しない、または綴り間違いの可能性があります)")
-                    return
-                # Twitchに登録されている正しいIDと表示名（大文字小文字が保持された名前）を取得
-                user_id = str(users[0].id)
-                target_name = users[0].name
-            except Exception as e:
-                print(f"[Error] 手動コマンドでのユーザー情報取得に失敗: {e}")
-                await ctx.send("ユーザー情報の取得に失敗しました。")
-                return
+        # コマンド引数、または送信者の英小文字名
+        target_raw_name = name if name else ctx.author.name
 
-        # 擬似レイドオブジェクトを作ってキック
         class MockRaid:
-            def __init__(self, uid: str, uname: str):
-                self.from_broadcaster = type("User", (), {"id": uid, "name": uname})()
+            def __init__(self, uname: str):
+                self.from_broadcaster = type("User", (), {"id": "12345", "name": uname})()
                 self.viewer_count = 1
 
-        await self.event_raid(MockRaid(user_id, target_name))
-        await ctx.send(f"【AIカード生成】{target_name} さんのアイコンを解析してソシャゲ風パラメーターを生成しました！")
+        await self.event_raid(MockRaid(target_raw_name))
+        await ctx.send(f"【AIカード生成】{target_raw_name} さんのカードデータを生成し、ローカルに保存しました！")
 
 
 async def setup_database(
