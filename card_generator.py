@@ -64,3 +64,44 @@ class CardGenerator:
         )
 
         return CharacterParams.model_validate_json(response.text)
+
+    async def generate_image(self, image_prompt: str) -> bytes | None:
+        try:
+            print(f"[Banana] 画像生成リクエストを送信中... モデル: {self.get_image_model()}")
+            
+            # ドキュメントの仕様に則り、非同期で画像モデルを呼び出し
+            response = await self.genai_client.aio.models.generate_content(
+                model=self.get_image_model(),
+                contents=[image_prompt],
+                # アスペクト比(スクエア)と解像度の最小設定（Liteのコスト・速度最適化に合わせる）
+                config=types.GenerateContentConfig(
+                    response_format={
+                        "image": {
+                            "aspect_ratio": "1:1",
+                            "image_size": "1K",
+                        },
+                    },
+                )
+            )
+
+            # レスポンスの parts から画像データを抽出
+            for part in response.parts:
+                # PIL.Imageオブジェクトとして取得できた場合
+                if hasattr(part, 'as_image') and part.as_image():
+                    pil_img = part.as_image()
+                    
+                    # Discord送信やファイル保存がしやすいよう、バイトデータ(PNG)に変換して返す
+                    img_byte_arr = io.BytesIO()
+                    pil_img.save(img_byte_arr, format='PNG')
+                    return img_byte_arr.getvalue()
+                    
+                # もしバイトデータがそのまま入っていた場合のフォールバック
+                elif part.inline_data is not None:
+                    return part.inline_data.data
+
+            print("[Error] Bananaからのレスポンスに画像データが含まれていませんでした。")
+            return None
+
+        except Exception as e:
+            print(f"[Error] Banana画像生成中に例外が発生しました: {e}")
+            return None
