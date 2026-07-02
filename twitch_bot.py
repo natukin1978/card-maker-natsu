@@ -54,6 +54,9 @@ class TwitchBot(commands.AutoBot):
 
         # A list of subscriptions we would like to make to the newly authorized channel...
         subs: list[eventsub.SubscriptionPayload] = [
+            eventsub.ChatNotificationSubscription(
+                broadcaster_user_id=payload.user_id, user_id=self.bot_id
+            ),
             eventsub.ChannelRaidSubscription(
                 to_broadcaster_user_id=payload.user_id
             ),
@@ -109,7 +112,10 @@ class AlertComponent(commands.Component):
         self.card_generator = CardGenerator()
         self.http_client = httpx.AsyncClient()
 
-    # レイド検知
+    @commands.Component.listener()
+    async def event_chat_notification(self, payload: twitchio.ChatNotification) -> None:
+        logger.info(payload, extra={'force': True})
+
     @commands.Component.listener()
     async def event_raid(self, payload: twitchio.ChannelRaid) -> None:
         raw_name = payload.from_broadcaster.name
@@ -212,7 +218,7 @@ class AlertComponent(commands.Component):
                 self.viewer_count = 1
 
         await self.event_raid(MockRaid(target_raw_name))
-        await ctx.send(f"【AIカード生成】{target_raw_name} さんのカードデータを生成し、ローカルに保存しました！")
+        # await ctx.send(f"【AIカード生成】{target_raw_name} さんのカードデータを生成し、ローカルに保存しました！")
 
 
 async def setup_database(
@@ -242,6 +248,9 @@ async def setup_database(
 
             subs.extend(
                 [
+                    eventsub.ChatNotificationSubscription(
+                        broadcaster_user_id=row["user_id"], user_id=bot_id
+                    ),
                     eventsub.ChannelRaidSubscription(
                         to_broadcaster_user_id=row["user_id"]
                     ),
