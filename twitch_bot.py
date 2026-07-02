@@ -11,6 +11,8 @@ if TYPE_CHECKING:
     import sqlite3
 
 import global_value as g
+from card_generator import CardGenerator
+from character_params import CharacterParams
 
 logger = logging.getLogger(__name__)
 
@@ -50,9 +52,6 @@ class TwitchBot(commands.AutoBot):
 
         # A list of subscriptions we would like to make to the newly authorized channel...
         subs: list[eventsub.SubscriptionPayload] = [
-            eventsub.ChannelFollowSubscription(
-                broadcaster_user_id=payload.user_id, moderator_user_id=self.bot_id
-            ),
             eventsub.ChannelRaidSubscription(
                 to_broadcaster_user_id=payload.user_id
             ),
@@ -101,67 +100,98 @@ class TwitchBot(commands.AutoBot):
 
 
 class AlertComponent(commands.Component):
+
     def __init__(self, bot: TwitchBot) -> None:
+        super().__init__()
         self.bot = bot
+        self.card_generator = CardGenerator()
+        # 画像ダウンロード用の非同期HTTPクライアント
         self.http_client = httpx.AsyncClient()
 
-    @commands.Component.listener()
-    async def event_follow(self, payload: twitchio.ChannelFollow) -> None:
-        # twitchio.ChannelFollow モデルから情報を取得
-        user_id = payload.user.id
-        user_name = payload.user.name
-        logger.info("[Alert] フォロー検知: %s (ID: %s)", user_name, user_id)
-
-        # AI処理へタスクを逃がす
-        await self.handle_ai_alert(user_id, user_name, "follow")
-
+    # レイド検知
     @commands.Component.listener()
     async def event_raid(self, payload: twitchio.ChannelRaid) -> None:
-        # twitchio.ChannelRaid モデルから情報を取得
         user_id = payload.from_broadcaster.id
         user_name = payload.from_broadcaster.name
         viewers = payload.viewer_count
-        logger.info("[Alert] レイド検集: %s から %s 人", user_name, viewers)
+        print(f"[Raid 検知] {user_name} ({viewers} viewers)")
 
-        await self.handle_ai_alert(user_id, user_name, "raid", viewers=viewers)
+        # アイコンの画像データを取得
+        image_bytes, mime_type = await self._fetch_profile_image(user_id)
 
-    async def handle_ai_alert(self, user_id: str, user_name: str, event_type: str, viewers: int = 0):
+        # 画像データも含めてカード生成サービスを呼び出す
+        card_data = await self.card_generator.generate_character(
+            user_name=user_name,
+            event_type="raid",
+            viewers=viewers,
+            image_bytes=image_bytes,
+            mime_type=mime_type
+        )
+        self._process_card_data(user_name, card_data)
+
+    # ユーザーIDからプロフィール画像をダウンロードする内部メソッド
+    async def _fetch_profile_image(self, user_id: str) -> tuple[bytes | None, str | None]:
         try:
-            # 最新のユーザープロフィールを取得してアイコンURLを特定
             users = await self.bot.fetch_users(ids=[int(user_id)])
             if not users:
-                logger.warning("ユーザー情報が見つかりませんでした: %s", user_name)
-                return
+                print(f"[Warning] ユーザー情報が見つかりませんでした: ID {user_id}")
+                return None, None
 
             profile_image_url = users[0].profile_image.url
 
-            # URLから画像をバイトデータとしてダウンロード
             response = await self.http_client.get(profile_image_url)
             if response.status_code != 200:
-                logger.error("アイコンのダウンロードに失敗しました。Status: %s", response.status_code)
-                return
+                print(f"[Error] アイコンのダウンロードに失敗しました。Status: {response.status_code}")
+                return None, None
 
             image_bytes = response.content
-            image_mime_type = response.headers.get("Content-Type", "image/png")
-
-            # Gemini APIにそのまま投入できるデータ構造
-            alert_payload = {
-                "event_type": event_type,
-                "user_name": user_name,
-                "viewers": viewers,
-                "image_data": {
-                    "bytes": image_bytes,
-                    "mime_type": image_mime_type
-                }
-            }
-
-            logger.info(alert_payload)
-            logger.info("[Success] AI用データ集約完了: %s のアイコン取得成功", user_name)
-            # 次のステップの関数へ受け渡す
-            # await self.generate_card_data(alert_payload)
+            mime_type = response.headers.get("Content-Type", "image/png")
+            print(f"[Success] アイコン取得成功: {users[0].name} ({mime_type})")
+            return image_bytes, mime_type
 
         except Exception as e:
-            logger.error("アラート情報収集フェーズでエラーが発生しました: %s", e, exc_info=True)
+            print(f"[Error] アイコン取得中に例外が発生しました: {e}")
+            return None, None
+
+    def _process_card_data(self, user_name: str, card_data: CharacterParams) -> None:
+        print(f"--- キャラクターカードデータ生成完了: {user_name} ---")
+        print(f"二つ名: {card_data.title}")
+        print(f"属性: {card_data.attribute}")
+        print(f"攻撃力: {card_data.attack_power} / 防御力: {card_data.defense_power}")
+        print(f"必殺技: {card_data.skill_name}")
+        print(f"説明文: {card_data.flavor_text}")
+        print(f"画像生成プロンプト: {card_data.image_prompt}")
+        print("--------------------------------------------------")
+        print("[Mock] ここで Banana API を叩いて画像を生成します...")
+
+    # 手動お遊び用コマンド
+    @commands.command(name="make_card")
+    async def make_card_command(self, ctx: commands.Context, name: str = None) -> None:
+        # 名前指定がない場合はコマンド送信者
+        if name is None:
+            user_id = ctx.author.id
+            target_name = ctx.author.name
+        else:
+            # 名前が指定された場合はTwitchからユーザー情報を検索してIDを特定する
+            try:
+                users = await self.bot.fetch_users(names=[name])
+                if not users:
+                    await ctx.send(f"ユーザー {name} が見つかりませんでした。")
+                    return
+                user_id = users[0].id
+                target_name = users[0].name
+            except Exception:
+                await ctx.send("ユーザー情報の取得に失敗しました。")
+                return
+
+        # 擬似レイドオブジェクトを作ってキック
+        class MockRaid:
+            def __init__(self, uid: str, uname: str):
+                self.from_broadcaster = type("User", (), {"id": uid, "name": uname})()
+                self.viewer_count = 1
+
+        await self.event_raid(MockRaid(user_id, target_name))
+        await ctx.send(f"【AIカード生成】{target_name} さんのアイコンを解析してソシャゲ風パラメーターを生成しました！")
 
 
 async def setup_database(
@@ -191,9 +221,6 @@ async def setup_database(
 
             subs.extend(
                 [
-                    eventsub.ChannelFollowSubscription(
-                        broadcaster_user_id=row["user_id"], moderator_user_id=bot_id
-                    ),
                     eventsub.ChannelRaidSubscription(
                         to_broadcaster_user_id=row["user_id"]
                     ),
