@@ -16,6 +16,8 @@ import global_value as g
 from card_generator import CardGenerator
 from character_params import CharacterParams
 
+BACKEND_SERVER_URL = "http://localhost:34510"
+
 logger = logging.getLogger(__name__)
 
 
@@ -208,8 +210,7 @@ class AlertComponent(commands.Component):
         if hasattr(g, "ws_manager"):
             # React側で画像を表示しやすいよう、URLを調整
             # 例: /output/fuyuka_ai.png -> http://localhost:34510/output/fuyuka_ai.png
-            server_url = "http://localhost:34510"
-            card_dict["image_url"] = f"{server_url}{card_dict['image_path']}" if card_dict["image_path"] else None
+            card_dict["image_url"] = f"{BACKEND_SERVER_URL}/card-maker-natsu{card_dict['image_path']}" if card_dict["image_path"] else None
             
             print("[WS] フロントエンドへ最新のカードデータを送信します...")
             await g.ws_manager.broadcast_json({
@@ -265,10 +266,9 @@ class AlertComponent(commands.Component):
 
             # 3. WebSocket配信用に画像URLを組み立て
             if hasattr(g, "ws_manager"):
-                server_url = "http://localhost:34510"
                 # すでにフルURLが入っていない場合のみ組み立てる
                 if card_dict.get("image_path") and not card_dict.get("image_url"):
-                    card_dict["image_url"] = f"{server_url}{card_dict['image_path']}"
+                    card_dict["image_url"] = f"{BACKEND_SERVER_URL}/card-maker-natsu{card_dict['image_path']}"
                 
                 print(f"[WS] [Repost] {card_dict['display_name']} のデータを再送信します...")
                 await g.ws_manager.broadcast_json({

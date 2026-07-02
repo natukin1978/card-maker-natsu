@@ -7,6 +7,7 @@ from typing import List
 import asqlite
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 import global_value as g
@@ -27,6 +28,7 @@ from twitch_bot import (
     TwitchBot,
     setup_database,
 )
+
 
 # --- WebSocket 接続マネージャー ---
 class ConnectionManager:
@@ -57,7 +59,22 @@ g.ws_manager = ConnectionManager()
 # --- FastAPIの初期化 ---
 app = FastAPI()
 
+origins = [
+    "http://localhost:9345",
+    "http://127.0.0.1:9345",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+os.makedirs("output", exist_ok=True)
 # output フォルダを静的ファイルとして公開
+app.mount("/card-maker-natsu/output", StaticFiles(directory="output"), name="output")
 output_dir = os.path.join(g.base_dir, "output")
 os.makedirs(output_dir, exist_ok=True)
 app.mount("/output", StaticFiles(directory=output_dir), name="output")

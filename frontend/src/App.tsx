@@ -38,13 +38,14 @@ function App() {
 
   // 属性名に応じて、用意したアイコン画像のパスを切り替える関数
   const getAttributeIcon = (attr: string) => {
-    // 実際に対応する画像を frontend/public/assets/ などの配下に置くと読み込めます
-    if (attr.includes("炎") || attr.includes("火")) return "/assets/icon_fire.png";
-    if (attr.includes("水")) return "/assets/icon_water.png";
-    if (attr.includes("風") || attr.includes("木")) return "/assets/icon_wind.png";
-    if (attr.includes("光")) return "/assets/icon_light.png";
-    if (attr.includes("闇")) return "/assets/icon_dark.png";
-    return "/assets/icon_default.png"; // フォールバック
+    const base = import.meta.env.BASE_URL;
+    const base_assets = base + "assets/";
+    if (attr.includes("炎") || attr.includes("火")) return base_assets + "icon_fire.png";
+    if (attr.includes("水")) return base_assets + "icon_water.png";
+    if (attr.includes("風") || attr.includes("木")) return base_assets + "icon_wind.png";
+    if (attr.includes("光")) return base_assets + "icon_light.png";
+    if (attr.includes("闇")) return base_assets + "icon_dark.png";
+    return base_assets + "icon_default.png"; // フォールバック
   };
 
   return (
@@ -83,7 +84,7 @@ function App() {
 
             {/* [右上] レアリティバッジ (画像) */}
             <img 
-              src="/assets/badge_ssr.png" 
+              src={`${import.meta.env.BASE_URL}assets/badge_ssr.png`}
               alt="SSR" 
               style={{
                 position: "absolute",
