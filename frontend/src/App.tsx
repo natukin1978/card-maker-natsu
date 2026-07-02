@@ -1,122 +1,107 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useEffect, useState } from "react";
 
-function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+// バックエンド（CharacterParams）に合わせた型定義
+interface CharacterCard {
+  display_name: string;
+  name: string;
+  element: string;
+  rarity: string;
+  role: string;
+  flavor_text: string;
+  status: {
+    HP: number;
+    ATK: number;
+    DEF: number;
+  };
+  skills: Array<{
+    name: string;
+    description: string;
+  }>;
+  image_url: string | null;
 }
 
-export default App
+function App() {
+  const [currentCard, setCurrentCard] = useState<CharacterCard | null>(null);
+  const [active, setActive] = useState<boolean>(false);
+
+  useEffect(() => {
+    // WebSocket の接続 (FastAPIサーバーを指定)
+    const ws = new WebSocket("ws://localhost:8000/ws");
+
+    ws.onopen = () => {
+      console.log("Connected to Backend WebSocket");
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        
+        if (message.event === "NEW_CARD") {
+          console.log("Received new card:", message.data);
+          // 新しいカードデータをセット
+          setCurrentCard(message.data);
+          // 演出をアクティブにする
+          setActive(true);
+
+          // テスト用に10秒後に自動で閉じる演出（必要に応じて調整）
+          // setTimeout(() => setActive(false), 10000);
+        }
+      } catch (error) {
+        console.error("Failed to parse WS message:", error);
+      }
+    };
+
+    ws.onclose = () => {
+      console.log("Disconnected from Backend WebSocket");
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, []);
+
+  return (
+    <div style={{
+      width: "100vw",
+      height: "100vh",
+      backgroundColor: "transparent", // OBS透過用
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      overflow: "hidden",
+      fontFamily: "sans-serif"
+    }}>
+      {active && currentCard && (
+        <div style={{
+          padding: "20px",
+          backgroundColor: "rgba(0, 0, 0, 0.8)",
+          color: "white",
+          borderRadius: "15px",
+          border: "2px solid #ff007f",
+          textAlign: "center",
+          maxWidth: "400px"
+        }}>
+          <h2>{currentCard.rarity} {currentCard.display_name}</h2>
+          <h3>【{currentCard.name}】</h3>
+          
+          {currentCard.image_url && (
+            <img 
+              src={currentCard.image_url} 
+              alt="Character" 
+              style={{ width: "100%", borderRadius: "10px", marginBottom: "15px" }} 
+            />
+          )}
+
+          <p style={{ fontStyle: "italic", color: "#ccc" }}>{currentCard.flavor_text}</p>
+          <div style={{ display: "flex", justifyContent: "space-around", marginTop: "10px" }}>
+            <div>HP: {currentCard.status.HP}</div>
+            <div>ATK: {currentCard.status.ATK}</div>
+            <div>DEF: {currentCard.status.DEF}</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default App;

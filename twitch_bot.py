@@ -204,6 +204,19 @@ class AlertComponent(commands.Component):
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(card_dict, f, ensure_ascii=False, indent=4)
         print(f"[Success] パラメーターJSONを保存しました: {json_path}")
+
+        if hasattr(g, "ws_manager"):
+            # React側で画像を表示しやすいよう、URLを調整
+            # 例: /output/fuyuka_ai.png -> http://localhost:8000/output/fuyuka_ai.png
+            server_url = "http://localhost:8000"
+            card_dict["image_url"] = f"{server_url}{card_dict['image_path']}" if card_dict["image_path"] else None
+            
+            print("[WS] フロントエンドへ最新のカードデータを送信します...")
+            await g.ws_manager.broadcast_json({
+                "event": "NEW_CARD",
+                "data": card_dict
+            })
+        
         print("--------------------------------------------------")
 
     # 手動お遊び用コマンド

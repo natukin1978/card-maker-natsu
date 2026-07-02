@@ -2,9 +2,10 @@ import asyncio
 import logging
 import os
 import sys
+from typing import List
 
 import asqlite
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 
@@ -27,23 +28,56 @@ from twitch_bot import (
     setup_database,
 )
 
+# --- WebSocket 接続マネージャー ---
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+        print(f"[WS] クライアントが接続しました。現在の接続数: {len(self.active_connections)}")
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+        print(f"[WS] クライアントが切断しました。現在の接続数: {len(self.active_connections)}")
+
+    async def broadcast_json(self, data: dict):
+        """全クライアントにJSONデータを送信"""
+        for connection in self.active_connections:
+            try:
+                await connection.send_json(data)
+            except Exception as e:
+                print(f"[WS] 送信エラー: {e}")
+
+# グローバルにマネージャーを保持
+g.ws_manager = ConnectionManager()
+
 # --- FastAPIの初期化 ---
 app = FastAPI()
 
-# output フォルダを静的ファイルとして公開 (例: http://localhost:8000/output/fuyuka_ai.json でアクセス可能に)
+# output フォルダを静的ファイルとして公開
 output_dir = os.path.join(g.base_dir, "output")
 os.makedirs(output_dir, exist_ok=True)
 app.mount("/output", StaticFiles(directory=output_dir), name="output")
 
-# ※ 後ほど、完成したReactのビルド済ファイルを丸ごと配信する設定もここに追加できます
-
+# WebSocket エンドポイント (ws://localhost:8000/ws)
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await g.ws_manager.connect(websocket)
+    try:
+        while True:
+            # クライアントからのメッセージ待ち受け（切断検知のため）
+            data = await websocket.receive_text()
+            # 必要であればクライアントからの命令をここで処理
+    except WebSocketDisconnect:
+        g.ws_manager.disconnect(websocket)
 
 # FastAPIを裏側で動かすための非同期タスク
 async def run_web_server():
     config = uvicorn.Config(app, host="127.0.0.1", port=8000, log_level="info")
     server = uvicorn.Server(config)
     await server.serve()
-
 
 async def main():
     print(constants.CALLBACK_URL_BOT)
@@ -64,11 +98,8 @@ async def main():
             bot.start(load_tokens=False)
         )
 
-
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        pass
-    finally:
         pass
