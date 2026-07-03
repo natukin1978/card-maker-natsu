@@ -33,6 +33,29 @@
 				"showReuseMessage": false,
 				"clear": true
 			}
+		},
+		{
+			"type": "shell",
+			"label": "Ruff: バックエンド整形",
+			"command": "python -m ruff check --fix .",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": [],
+			"presentation": {
+				"reveal": "silent",
+				"panel": "shared",
+				"clear": true
+			}
+		},
+		{
+			"label": "コード一括整形 (React & Python)",
+			"dependsOn": ["Biome: フロントエンド整形", "Ruff: バックエンド整形"],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
 		}
 	]
 }
