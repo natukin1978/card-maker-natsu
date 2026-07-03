@@ -12,17 +12,17 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({ card, onClose }) =
   const [isFadingOut, setIsFadingOut] = useState(false);
 
   useEffect(() => {
-    // 1. 10秒（10000ms）経過したらフェードアウトフラグを立てる
+    // 1. 経過したらフェードアウトフラグを立てる
     const displayTimer = setTimeout(() => {
       setIsFadingOut(true);
-    }, 10000);
+    }, 15000);
 
     return () => clearTimeout(displayTimer);
   }, []);
 
   useEffect(() => {
     if (isFadingOut) {
-      // 2. フェードアウトアニメーション（CSS側で0.5秒）が完了したら、親側の表示を完全にオフにする
+      // 2. フェードアウトアニメーションが完了したら、親側の表示を完全にオフにする
       const fadeTimer = setTimeout(() => {
         onClose();
       }, 500);
