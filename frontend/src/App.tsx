@@ -32,10 +32,10 @@ function App() {
       try {
         const message = JSON.parse(event.data);
         if (message.event === "NEW_CARD") {
+          soundManager.play("kirakira");
+
           setCurrentCard(message.data);
           setActive(true);
-
-          soundManager.play("kirakira");
         }
       } catch (err) {
         console.error("Failed to parse WebSocket message:", err);
