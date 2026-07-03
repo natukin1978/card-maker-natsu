@@ -223,6 +223,10 @@ class AlertComponent(commands.Component):
     # 手動お遊び用コマンド
     @commands.command(name="make_card")
     async def make_card_command(self, ctx: commands.Context, name: str = None) -> None:
+        if not is_owner_or_bot(ctx.author.id):
+            await ctx.send(f"@{ctx.author.name} このコマンドはモデレーター以上のみ使用できます。")
+            return
+
         # コマンド引数、または送信者の英小文字名
         target_raw_name = name if name else ctx.author.name
 
@@ -240,8 +244,9 @@ class AlertComponent(commands.Component):
         [デバッグ用] 保存済みのJSONデータを読み込んでWebSocketに再送する
         使い方: !repost ユーザー名
         """
-        # 権限チェックなどを入れる場合はここに（配信者のみなど）
-        # if ctx.author.name != ctx.channel.name: return
+        if not is_owner_or_bot(ctx.author.id):
+            await ctx.send(f"@{ctx.author.name} このコマンドはモデレーター以上のみ使用できます。")
+            return
 
         if not target_user:
             await ctx.send("ユーザー名を指定してください。例: !repost fuyuka_ai")
@@ -282,6 +287,9 @@ class AlertComponent(commands.Component):
         except Exception as e:
             print(f"[Error] Repost処理中に例外が発生しました: {e}")
             await ctx.send("データの再送中にエラーが発生しました。")
+
+def is_owner_or_bot(id) -> bool:
+    return id in [g.config["twitch"]["owner"]["id"], g.config["twitch"]["bot"]["id"]]
 
 async def setup_database(
     db: asqlite.Pool,
