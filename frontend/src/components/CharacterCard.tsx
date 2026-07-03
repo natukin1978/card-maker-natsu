@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import type React from "react";
+import { useEffect, useState } from "react";
 import type { CharacterCardData } from "../types/card";
 import "./CharacterCard.css";
 
@@ -41,8 +42,8 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({ card, onClose }) =
   };
 
   return (
-    <div 
-      className={`card-animate-container ${isFadingOut ? "fade-out" : ""}`} 
+    <div
+      className={`card-animate-container ${isFadingOut ? "fade-out" : ""}`}
       style={{
         width: "380px",
         backgroundColor: "rgba(20, 15, 25, 0.95)",
@@ -60,56 +61,74 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({ card, onClose }) =
       {/* イラスト & バッジ領域 */}
       <div style={{ position: "relative", width: "100%", aspectRatio: "1 / 1" }}>
         {card.image_url && (
-          <img 
-            src={card.image_url} 
-            alt="Character" 
-            style={{ width: "100%", height: "100%", objectFit: "cover" }} 
+          <img
+            src={card.image_url}
+            alt="Character"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
         )}
 
         {/* 右上：SSRバッジ */}
-        <img 
-          src={`${import.meta.env.BASE_URL}assets/badge_ssr.png`} 
-          alt="SSR" 
+        <img
+          src={`${import.meta.env.BASE_URL}assets/badge_ssr.png`}
+          alt="SSR"
           style={{
             position: "absolute",
             top: "12px",
             right: "12px",
-            width: "85px", 
-            filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.5))"
+            width: "85px",
+            filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.5))",
           }}
         />
 
         {/* 左上：属性バッジ */}
-        <img 
-          src={getAttributeIcon(card.attribute)} 
-          alt={card.attribute} 
+        <img
+          src={getAttributeIcon(card.attribute)}
+          alt={card.attribute}
           style={{
             position: "absolute",
             top: "12px",
             left: "12px",
             width: "50px",
-            filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.5))"
+            filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.5))",
           }}
         />
 
         {/* イラスト下部：二つ名と名前 */}
-        <div style={{
-          position: "absolute",
-          bottom: "0",
-          left: "0",
-          width: "100%",
-          background: "linear-gradient(to top, rgba(15,10,20,1) 0%, rgba(15,10,20,0.8) 70%, rgba(15,10,20,0) 100%)",
-          padding: "40px 16px 12px 16px",
-          boxSizing: "border-box",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "flex-start"
-        }}>
-          <span style={{ color: "#00e5ff", fontSize: "13px", fontWeight: "bold", letterSpacing: "1px", textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}>
+        <div
+          style={{
+            position: "absolute",
+            bottom: "0",
+            left: "0",
+            width: "100%",
+            background:
+              "linear-gradient(to top, rgba(15,10,20,1) 0%, rgba(15,10,20,0.8) 70%, rgba(15,10,20,0) 100%)",
+            padding: "40px 16px 12px 16px",
+            boxSizing: "border-box",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+          }}
+        >
+          <span
+            style={{
+              color: "#00e5ff",
+              fontSize: "13px",
+              fontWeight: "bold",
+              letterSpacing: "1px",
+              textShadow: "0 1px 4px rgba(0,0,0,0.8)",
+            }}
+          >
             【{card.title}】
           </span>
-          <h2 style={{ margin: "4px 0 0 0", fontSize: "26px", fontWeight: "bold", textShadow: "0 2px 6px rgba(0,0,0,0.9)" }}>
+          <h2
+            style={{
+              margin: "4px 0 0 0",
+              fontSize: "26px",
+              fontWeight: "bold",
+              textShadow: "0 2px 6px rgba(0,0,0,0.9)",
+            }}
+          >
             {card.display_name}
           </h2>
         </div>
@@ -118,43 +137,65 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({ card, onClose }) =
       {/* ステータス & テキスト領域 */}
       <div style={{ padding: "16px" }}>
         {/* ステータスバー */}
-        <div style={{ 
-          display: "flex", 
-          justifyContent: "space-around", 
-          backgroundColor: "rgba(255,255,255,0.06)", 
-          padding: "10px", 
-          borderRadius: "10px",
-          fontSize: "15px",
-          marginBottom: "14px",
-          border: "1px solid rgba(255,255,255,0.1)"
-        }}>
-          <div><span style={{ color: "#aaa", fontSize: "12px" }}>ATK</span> <b style={{ color: "#ff5252", fontSize: "18px" }}>{card.attack_power}</b></div>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-around",
+            backgroundColor: "rgba(255,255,255,0.06)",
+            padding: "10px",
+            borderRadius: "10px",
+            fontSize: "15px",
+            marginBottom: "14px",
+            border: "1px solid rgba(255,255,255,0.1)",
+          }}
+        >
+          <div>
+            <span style={{ color: "#aaa", fontSize: "12px" }}>ATK</span>{" "}
+            <b style={{ color: "#ff5252", fontSize: "18px" }}>{card.attack_power}</b>
+          </div>
           <div style={{ width: "1px", backgroundColor: "rgba(255,255,255,0.2)" }}></div>
-          <div><span style={{ color: "#aaa", fontSize: "12px" }}>DEF</span> <b style={{ color: "#4caf50", fontSize: "18px" }}>{card.defense_power}</b></div>
+          <div>
+            <span style={{ color: "#aaa", fontSize: "12px" }}>DEF</span>{" "}
+            <b style={{ color: "#4caf50", fontSize: "18px" }}>{card.defense_power}</b>
+          </div>
         </div>
 
         {/* 必殺技 */}
-        <div style={{ 
-          backgroundColor: "rgba(224, 64, 251, 0.1)", 
-          padding: "8px 12px", 
-          borderRadius: "8px", 
-          borderLeft: "4px solid #e040fb",
-          marginBottom: "14px",
-          fontSize: "14px"
-        }}>
-          <span style={{ color: "#e040fb", fontWeight: "bold", display: "block", fontSize: "11px", marginBottom: "2px" }}>SKILL</span>
+        <div
+          style={{
+            backgroundColor: "rgba(224, 64, 251, 0.1)",
+            padding: "8px 12px",
+            borderRadius: "8px",
+            borderLeft: "4px solid #e040fb",
+            marginBottom: "14px",
+            fontSize: "14px",
+          }}
+        >
+          <span
+            style={{
+              color: "#e040fb",
+              fontWeight: "bold",
+              display: "block",
+              fontSize: "11px",
+              marginBottom: "2px",
+            }}
+          >
+            SKILL
+          </span>
           <b style={{ color: "#fff" }}>{card.skill_name}</b>
         </div>
 
         {/* フレーバーテキスト */}
-        <p style={{ 
-          color: "#ddd", 
-          fontSize: "13px", 
-          lineHeight: "1.6",
-          margin: "0",
-          paddingTop: "4px",
-          textAlign: "left"
-        }}>
+        <p
+          style={{
+            color: "#ddd",
+            fontSize: "13px",
+            lineHeight: "1.6",
+            margin: "0",
+            paddingTop: "4px",
+            textAlign: "left",
+          }}
+        >
           {card.flavor_text}
         </p>
       </div>

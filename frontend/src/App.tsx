@@ -1,7 +1,7 @@
-import { useEffect, useState, useRef } from "react";
-import ReconnectingWebSocket from 'reconnecting-websocket';
-import type { CharacterCardData } from "./types/card";
+import { useEffect, useRef, useState } from "react";
+import ReconnectingWebSocket from "reconnecting-websocket";
 import { CharacterCard } from "./components/CharacterCard";
+import type { CharacterCardData } from "./types/card";
 
 function App() {
   const [currentCard, setCurrentCard] = useState<CharacterCardData | null>(null);
@@ -29,24 +29,26 @@ function App() {
   }, []);
 
   return (
-    <div style={{
-      width: "100vw",
-      height: "100vh",
-      backgroundColor: "transparent",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      overflow: "hidden",
-      fontFamily: "'Helvetica Neue', Arial, sans-serif",
-    }}>
+    <div
+      style={{
+        width: "100vw",
+        height: "100vh",
+        backgroundColor: "transparent",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        overflow: "hidden",
+        fontFamily: "'Helvetica Neue', Arial, sans-serif",
+      }}
+    >
       {active && currentCard && (
-        <CharacterCard 
-          card={currentCard} 
+        <CharacterCard
+          card={currentCard}
           onClose={() => {
             // 10秒後のフェードアウトが終わったらここが呼ばれ、完全に消去される
             setActive(false);
             setCurrentCard(null);
-          }} 
+          }}
         />
       )}
     </div>

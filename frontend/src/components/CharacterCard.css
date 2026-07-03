@@ -33,9 +33,15 @@
 
 /* 3. ホログラム加工（煌めきループ） */
 @keyframes holoShimmer {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 .holo-shimmer-layer {
@@ -46,7 +52,7 @@
   height: 100%;
   pointer-events: none;
   z-index: 10; /* 最前面に重ねる */
-  
+
   /* レアカードらしい虹色のグラデーション */
   background: linear-gradient(
     125deg,
@@ -59,8 +65,8 @@
     rgba(255, 255, 255, 0) 100%
   );
   background-size: 300% 300%;
-  
+
   /* イラストや枠線とブレンドさせて発光させる（パチスロやトレーディングカードのホロ感） */
-  mix-blend-mode: color-dodge; 
+  mix-blend-mode: color-dodge;
   animation: holoShimmer 4s ease infinite;
 }
