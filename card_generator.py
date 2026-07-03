@@ -75,7 +75,11 @@ class CardGenerator:
                 input=[
                     {
                       "type": "text",
-                      "text": "Analyze the features of the input profile icon and recreate a new, full-fledged high-quality anime character card illustration based on the following detailed prompt.\n" + image_prompt,
+                      "text":
+                        "A complete, masterful anime-style character illustration, reimagining the input profile icon as a full-fledged, highly detailed single artwork. "
+                        "The character, based on the features of the input icon, is depicted in a [Pose/Action] within a [Detailed Background]. "
+                        "Ensure there are absolutely no card frames, no user interface elements, and no game stats displayed.\n"
+                        + image_prompt
                     },
                     {
                         "type": "image",
