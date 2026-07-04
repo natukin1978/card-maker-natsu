@@ -33,13 +33,17 @@ class CardGenerator:
         prompt_text = f"""
         あなたは凄腕のソーシャルゲームキャラクターデザイナーです。
         Twitchでの配信イベント「{event_type}」が発生しました。
-        アクションを起こしたユーザー名: {user_name}
-        イベントの規模（レイド人数など）: {viewers}人
+        添付された画像（ユーザーのTwitchプロフィールアイコン）を分析し、その「中心的なモチーフや全体の雰囲気」を捉えてください。
 
-        添付された画像（ユーザーの現在のTwitchプロフィールアイコン）のビジュアル要素を深く分析してください。
-        このユーザー名とアイコンの雰囲気をモチーフにした、魅力的で最高にかっこいいソシャゲ風キャラクターカードの設定を考えてください。
-        
-        image_promptには、このアイコンの要素を取り込みつつ、アニメ風のハイクオリティなイラストを生成するための詳細な英語プロンプトを出力してください。
+        【image_prompt 出力の重要なルール（トークン最適化とクオリティ向上）】
+        画像生成モデルが直接アイコン画像を参照して特徴を引き継ぐため、アイコンの細かなビジュアル（髪の色や服の形など）を一から十まで言葉で説明する必要はありません。
+        代わりに、以下の要素に特化した、アニメ風ハイクオリティイラスト用の詳細な英語プロンプトを作成してください。
+
+        1. イベントの種類や規模（{viewers}人）に応じた「派手なエフェクト（魔法、オーラ、光など）」や「ドラマチックな構図・ポーズ」
+        2. ユーザー名（{user_name}）から連想される、衣装のアレンジや背景の世界観
+        3. 枠線（カードフレーム）、文字、ゲームUI、ステータスアイコンなどを絶対に生成させないための指示（例: "single cohesive artwork, no border, no text, no UI" などの表現を含める）
+
+        元のアイコンの魂を引き継ぎつつ、イベントの熱量が伝わる最高の一枚絵（イラスト）にするための「拡張演出」に集中して出力してください。
         """
 
         contents = []
@@ -76,10 +80,10 @@ class CardGenerator:
                     {
                       "type": "text",
                       "text":
-                        "A complete, masterful anime-style character illustration, reimagining the input profile icon as a full-fledged, highly detailed single artwork. "
-                        "The character, based on the features of the input icon, is depicted in a [Pose/Action] within a [Detailed Background]. "
-                        "Ensure there are absolutely no card frames, no user interface elements, and no game stats displayed.\n"
-                        + image_prompt
+                        "A masterful, full-fledged anime-style character illustration, reimagining the input profile icon into a highly detailed single artwork. "
+                        "While faithfully inheriting the core visual identity, character features, and color palette of the input icon, dynamically render the scene based on the following specific descriptions: "
+                        f"{image_prompt} "
+                        "Strictly ensure there are absolutely no card frames, borders, text, user interface elements, or game statistics displayed in the final image."
                     },
                     {
                         "type": "image",
