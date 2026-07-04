@@ -1,0 +1,108 @@
+{
+  "type": "object",
+  "title": "基本設定",
+  "properties": {
+    "logLevel": {
+      "type": "string",
+      "title": "ログ出力レベル",
+      "description": "コンソールに出力する情報の詳細度。通常は INFO を推奨。",
+      "propertyOrder": 1,
+      "enum": [
+        "DEBUG",
+        "INFO",
+        "WARNING",
+        "ERROR"
+      ]
+    },
+    "google": {
+      "type": "object",
+      "title": "Google Gemini 設定",
+      "description": "キーや使用モデルの情報。",
+      "propertyOrder": 2,
+      "properties": {
+        "geminiApiKey": {
+          "type": "string",
+          "title": "Gemini APIキー",
+          "format": "password",
+          "propertyOrder": 1
+        },
+        "modelName": {
+          "type": "string",
+          "title": "言語化モデル",
+          "propertyOrder": 2
+        },
+        "modelNameImage": {
+          "type": "string",
+          "title": "画像用モデル",
+          "propertyOrder": 3
+        }
+      }
+    },
+    "twitch": {
+      "type": "object",
+      "title": "Twitch 連携設定",
+      "description": "Twitch APIおよびボット/配信チャンネルのアカウント情報。",
+      "propertyOrder": 3,
+      "properties": {
+        "clientId": {
+          "type": "string",
+          "title": "クライアントID",
+          "propertyOrder": 1
+        },
+        "clientSecret": {
+          "type": "string",
+          "title": "シークレットキー",
+          "format": "password",
+          "propertyOrder": 2
+        },
+        "bot": {
+          "type": "object",
+          "title": "ボットアカウント",
+          "propertyOrder": 3,
+          "properties": {
+            "name": {
+              "type": "string",
+              "title": "ボット名",
+              "propertyOrder": 1
+            },
+            "id": {
+              "type": "string",
+              "title": "ボットID",
+              "readOnly": true,
+              "propertyOrder": 2
+            }
+          }
+        },
+        "owner": {
+          "type": "object",
+          "title": "配信チャンネルアカウント",
+          "propertyOrder": 4,
+          "properties": {
+            "name": {
+              "type": "string",
+              "title": "配信チャンネル名",
+              "propertyOrder": 1
+            },
+            "id": {
+              "type": "string",
+              "title": "配信チャンネルID",
+              "readOnly": true,
+              "propertyOrder": 2
+            }
+          }
+        },
+        "getIds": {
+          "format": "button",
+          "options": {
+            "button": {
+              "text": "ボットIDと配信チャンネルIDを取得",
+              "icon": "search",
+              "action": "getIds",
+              "validated": true
+            }
+          }
+        }
+      }
+    }
+  }
+}

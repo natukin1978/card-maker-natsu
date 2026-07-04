@@ -23,7 +23,6 @@ g.config = read_config()
 setup_app_logging(g.config["logLevel"], log_file_path=f"{g.app_name}.log")
 logger = logging.getLogger(__name__)
 
-import constants
 from twitch_bot import (
     TwitchBot,
     setup_database,
@@ -99,8 +98,11 @@ async def run_web_server():
     await server.serve()
 
 async def main():
-    print(constants.CALLBACK_URL_BOT)
-    print(constants.CALLBACK_URL_OWNER)
+
+    # conduit_id の警告を抑止したい…
+    logging.getLogger("twitchio.client").setLevel(logging.ERROR)
+    # StarletteAdapter の警告を抑止したい…
+    logging.getLogger("twitchio.web.aio_adapter").setLevel(logging.ERROR)
 
     bot = None
     async with asqlite.create_pool("tokens.db") as tdb:
@@ -113,8 +115,7 @@ async def main():
         # Webサーバー(FastAPI) と TwitchBot を並行して同時に走らせる
         await asyncio.gather(
             run_web_server(),
-            # bot.start(load_tokens=False, with_adapter=False)
-            bot.start(load_tokens=False)
+            bot.start(load_tokens=False, with_adapter=False)
         )
 
 if __name__ == "__main__":

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Config Manager</title>
+        <link rel="icon" href="/images/config_app.ico" sizes="any">
+        <script src="https://cdn.jsdelivr.net/npm/@json-editor/json-editor@latest/dist/jsoneditor.min.js"></script>
+        <link rel="stylesheet" id="theme-link" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+        <link rel="stylesheet" id="iconlib-link" href="https://use.fontawesome.com/releases/v5.6.1/css/all.css">
+        <style type="text/css">
+            fieldset {
+                margin-bottom: 20px;
+                padding: 0 20px 15px;
+                border: 1px gray groove;
+            }
+            legend {
+                font-size: 1.25em;
+            }
+        </style>
+    </head>
+    <body class="container py-4">
+        <h2>
+            <img src="/images/config_app.png" style="width: 48px; height: 48px;">
+            Config Manager
+        </h2>
+        <div id="editor_holder"></div>
+        <div>
+            <button id="submit" class="btn btn-primary mt-3">保存</button>
+        </div>
+        <div style="margin-top: 2em;">
+            <h4>
+                ※ Twitch 認証が必要な場合
+            </h4>
+            「保存」した後、Webブラウザで以下に表示されているアドレスにアクセスしてください。
+            <div>
+                <fieldset>
+                    <legend>TwitchのBOTアカウントでログインして「許可」してください。</legend>
+                    <a
+                        href="{{CALLBACK_URL_BOT}}"
+                        target="_blank" rel="noopener noreferrer"
+                    >
+                        {{CALLBACK_URL_BOT}}
+                    </a>
+                </fieldset>
+            </div>
+            <div>
+                <fieldset>
+                    <legend>Twitchの配信チャンネルアカウントでログインして「許可」してください。</legend>
+                    <a
+                        href="{{CALLBACK_URL_OWNER}}"
+                        target="_blank" rel="noopener noreferrer"
+                    >
+                        {{CALLBACK_URL_OWNER}}
+                    </a>
+                </fieldset>
+            </div>
+        </div>
+
+        <script>
+            // Python側から渡されたデータをセット
+            const schema = {{ schema | tojson }};
+            const startVal = {{ config | tojson }};
+
+            const editor = new JSONEditor(document.getElementById('editor_holder'), {
+                schema: schema,
+                startval: startVal,
+                theme: 'bootstrap4',
+                iconlib: 'fontawesome5',
+                disable_collapse: false,
+                disable_edit_json: true,
+                disable_properties: true,
+                object_layout: 'normal',
+            });
+
+            document.getElementById('submit').addEventListener('click', () => {
+                const errors = editor.validate();
+                if (errors.length) {
+                    alert("入力エラーがあります");
+                    return;
+                }
+
+                fetch('/save', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(editor.getValue())
+                }).then(res => res.json()).then(data => alert(data.message));
+            });
+
+            JSONEditor.defaults.callbacks = {
+                "button": {
+                    "getIds": async function (jseditor, e) {
+                        // 現在フォームに入力されている値を取得
+                        const currentVal = editor.getValue();
+                        const twitchData = currentVal.twitch;
+
+                        // Python側にデータを投げてIDを取得
+                        const response = await fetch('/get_ids', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify(twitchData)
+                        });
+
+                        const resData = await response.json();
+                        if (!resData) {
+                            alert("取得に失敗しました。");
+                            return;
+                        }
+
+                        // 取得した値をエディタの特定のパスに反映
+                        // editor.getEditor('パス') で個別の入力欄を操作できます
+                        editor.getEditor('root.twitch.bot.id').setValue(resData.bot_id);
+                        editor.getEditor('root.twitch.owner.id').setValue(resData.owner_id);
+
+                        alert("取得に成功しました。");
+                    },
+                },
+            };
+        </script>
+    </body>
+</html>
