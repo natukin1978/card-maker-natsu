@@ -15,7 +15,7 @@ function App() {
   const socketRef = useRef<ReconnectingWebSocket | null>(null);
 
   useEffect(() => {
-    soundManager.register("kirakira", "kirakira.mp3");
+    soundManager.register("kirakira", "kirakira2.mp3");
   }, []);
 
   // 音量の初期設定
