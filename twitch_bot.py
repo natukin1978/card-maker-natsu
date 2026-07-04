@@ -122,7 +122,7 @@ class AlertComponent(commands.Component):
     async def event_raid(self, payload: twitchio.ChannelRaid) -> None:
         raw_name = payload.from_broadcaster.name
         viewers = payload.viewer_count
-        print(f"[Raid 検知] {raw_name} ({viewers} viewers)")
+        logger.info(f"[Raid 検知] {raw_name} ({viewers} viewers)")
 
         image_bytes, mime_type, display_name = await self._fetch_profile_image_and_display_name(raw_name)
 
@@ -133,7 +133,7 @@ class AlertComponent(commands.Component):
             image_bytes=image_bytes,
             mime_type=mime_type
         )
-        
+
         # 修正：image_bytes と mime_type も後ろに渡す
         await self._process_card_data(raw_name, display_name, card_data, image_bytes, mime_type)
 
@@ -142,7 +142,7 @@ class AlertComponent(commands.Component):
         try:
             users = await self.bot.fetch_users(logins=[raw_name.lower()])
             if not users:
-                print(f"[Warning] ユーザー情報が見つかりませんでした: {raw_name}")
+                logger.error(f"[Warning] ユーザー情報が見つかりませんでした: {raw_name}")
                 return None, None, raw_name
 
             user_obj = users[0]
@@ -153,30 +153,30 @@ class AlertComponent(commands.Component):
             # アイコンをダウンロード
             response = await self.http_client.get(profile_image_url)
             if response.status_code != 200:
-                print("[Error] アイコンのダウンロードに失敗しました。")
+                logger.error("[Error] アイコンのダウンロードに失敗しました。")
                 return None, None, display_name
 
             image_bytes = response.content
             mime_type = response.headers.get("Content-Type", "image/png")
-            
-            print(f"[Success] ユーザー情報取得完了: {display_name} (ID: {raw_name})")
+
+            logger.info(f"[Success] ユーザー情報取得完了: {display_name} (ID: {raw_name})")
             return image_bytes, mime_type, display_name
 
         except Exception as e:
-            print(f"[Error] ユーザー情報取得中に例外が発生しました: {e}")
+            logger.error(f"[Error] ユーザー情報取得中に例外が発生しました: {e}")
             return None, None, raw_name
 
     # パラメータと画像をローカルに保存する処理
     async def _process_card_data(
-        self, 
-        raw_name: str, 
-        display_name: str, 
+        self,
+        raw_name: str,
+        display_name: str,
         card_data: CharacterParams,
         icon_bytes: bytes | None = None,
         mime_type: str | None = None
     ) -> None:
-        print(f"--- キャラクターカードデータ生成完了: {display_name} ---")
-        
+        logger.info(f"--- キャラクターカードデータ生成完了: {display_name} ---")
+
         output_dir = "output"
         os.makedirs(output_dir, exist_ok=True)
 
@@ -186,39 +186,39 @@ class AlertComponent(commands.Component):
             icon_bytes=icon_bytes,
             mime_type=mime_type
         )
-        
+
         file_base_name = raw_name.lower()
 
         if generated_image_bytes:
             image_path = os.path.join(output_dir, f"{file_base_name}.png")
             with open(image_path, "wb") as f:
                 f.write(generated_image_bytes)
-            print(f"[Success] イラストを保存しました: {image_path}")
+            logger.info(f"[Success] イラストを保存しました: {image_path}")
         else:
-            print("[Warning] 画像生成に失敗したため、イメージファイルの保存をスキップします。")
+            logger.error("[Warning] 画像生成に失敗したため、イメージファイルの保存をスキップします。")
 
         # 2. パラメーター（JSON）を保存
         card_dict = card_data.model_dump()
         card_dict["display_name"] = display_name
         card_dict["image_path"] = f"/{output_dir}/{file_base_name}.png" if generated_image_bytes else None
-        
+
         json_path = os.path.join(output_dir, f"{file_base_name}.json")
         with open(json_path, "w", encoding="utf-8") as f:
             json.dump(card_dict, f, ensure_ascii=False, indent=4)
-        print(f"[Success] パラメーターJSONを保存しました: {json_path}")
+        logger.info(f"[Success] パラメーターJSONを保存しました: {json_path}")
 
         if hasattr(g, "ws_manager"):
             # React側で画像を表示しやすいよう、URLを調整
             # 例: /output/fuyuka_ai.png -> http://localhost:34510/output/fuyuka_ai.png
             card_dict["image_url"] = f"{BACKEND_SERVER_URL}/card-maker-natsu{card_dict['image_path']}" if card_dict["image_path"] else None
-            
-            print("[WS] フロントエンドへ最新のカードデータを送信します...")
+
+            logger.info("[WS] フロントエンドへ最新のカードデータを送信します...")
             await g.ws_manager.broadcast_json({
                 "event": "NEW_CARD",
                 "data": card_dict,
             })
-        
-        print("--------------------------------------------------")
+
+        logger.info("--------------------------------------------------")
 
     # 手動お遊び用コマンド
     @commands.command(name="make_card")
@@ -260,11 +260,11 @@ class AlertComponent(commands.Component):
         # 1. そもそもファイルが存在するかチェック
         if not os.path.exists(json_path):
             await ctx.send(f"[Error] {target_user} のカードデータが見つかりません。")
-            print(f"[Repost] ファイルが見つかりません: {json_path}")
+            logger.error(f"[Repost] ファイルが見つかりません: {json_path}")
             return
 
         try:
-            print(f"[Repost] {json_path} からデータをロード中...")
+            logger.info(f"[Repost] {json_path} からデータをロード中...")
             # 2. JSONファイルを読み込む
             with open(json_path, "r", encoding="utf-8") as f:
                 card_dict = json.load(f)
@@ -274,18 +274,18 @@ class AlertComponent(commands.Component):
                 # すでにフルURLが入っていない場合のみ組み立てる
                 if card_dict.get("image_path") and not card_dict.get("image_url"):
                     card_dict["image_url"] = f"{BACKEND_SERVER_URL}/card-maker-natsu{card_dict['image_path']}"
-                
-                print(f"[WS] [Repost] {card_dict['display_name']} のデータを再送信します...")
+
+                logger.info(f"[WS] [Repost] {card_dict['display_name']} のデータを再送信します...")
                 await g.ws_manager.broadcast_json({
                     "event": "NEW_CARD",
                     "data": card_dict,
                 })
                 # await ctx.send(f"[Success] {card_dict['display_name']} のカードを再送しました！")
             else:
-                print("[Warning] WebSocketマネージャー(g.ws_manager)が準備できていません。")
+                logger.error("[Warning] WebSocketマネージャー(g.ws_manager)が準備できていません。")
 
         except Exception as e:
-            print(f"[Error] Repost処理中に例外が発生しました: {e}")
+            logger.error(f"[Error] Repost処理中に例外が発生しました: {e}")
             await ctx.send("データの再送中にエラーが発生しました。")
 
 def is_owner_or_bot(id) -> bool:

@@ -38,12 +38,12 @@ class ConnectionManager:
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
         self.active_connections.append(websocket)
-        print(f"[WS] クライアントが接続しました。現在の接続数: {len(self.active_connections)}")
+        logger.info(f"[WS] クライアントが接続しました。現在の接続数: {len(self.active_connections)}")
 
     def disconnect(self, websocket: WebSocket):
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
-        print(f"[WS] クライアントが切断しました。現在の接続数: {len(self.active_connections)}")
+        logger.info(f"[WS] クライアントが切断しました。現在の接続数: {len(self.active_connections)}")
 
     async def broadcast_json(self, data: dict):
         # 配信中に接続が切れたクライアントを掃除しながら送信
@@ -87,7 +87,7 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             # クライアントからのメッセージ待ち受け（切断検知のため）
             data = await websocket.receive_text()
-            logger.info(data)
+            logger.debug(data)
             # 必要であればクライアントからの命令をここで処理
     except WebSocketDisconnect:
         g.ws_manager.disconnect(websocket)

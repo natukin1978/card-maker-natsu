@@ -1,10 +1,13 @@
 import base64
+import logging
 
 from google import genai
 from google.genai import types
 
 import global_value as g
 from character_params import CharacterParams
+
+logger = logging.getLogger(__name__)
 
 
 class CardGenerator:
@@ -29,7 +32,7 @@ class CardGenerator:
         image_bytes: bytes | None = None,
         mime_type: str | None = None
     ) -> CharacterParams:
-        
+
         prompt_text = f"""
         あなたは凄腕のソーシャルゲームキャラクターデザイナーです。
         Twitchでの配信イベント「{event_type}」が発生しました。
@@ -66,13 +69,13 @@ class CardGenerator:
         return CharacterParams.model_validate_json(response.text)
 
     async def generate_image(
-        self, 
-        image_prompt: str, 
-        icon_bytes: bytes | None = None, 
+        self,
+        image_prompt: str,
+        icon_bytes: bytes | None = None,
         mime_type: str | None = None
     ) -> bytes | None:
         try:
-            print(f"[Banana] 画像生成リクエストを送信中... モデル: {self.get_image_model()}")
+            logger.info(f"[Banana] 画像生成リクエストを送信中... モデル: {self.get_image_model()}")
 
             response = self.genai_client.interactions.create(
                 model=self.get_image_model(),
@@ -103,9 +106,9 @@ class CardGenerator:
             if generated_image:
                 return base64.b64decode(generated_image.data)
 
-            print("[Error] Bananaからのレスポンスに画像データが含まれていませんでした。")
+            logger.error("[Error] Bananaからのレスポンスに画像データが含まれていませんでした。")
             return None
 
         except Exception as e:
-            print(f"[Error] Banana画像生成中に例外が発生しました: {e}")
+            logger.error(f"[Error] Banana画像生成中に例外が発生しました: {e}")
             return None
