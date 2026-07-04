@@ -1,0 +1,20 @@
+{
+  "logLevel": "INFO",
+  "google": {
+    "geminiApiKey": "",
+    "modelName": "gemini-3.1-flash-lite",
+    "modelNameImage": "gemini-3.1-flash-lite-image"
+  },
+  "twitch": {
+    "clientId": "",
+    "clientSecret": "",
+    "bot": {
+      "name": "",
+      "id": ""
+    },
+    "owner": {
+      "name": "",
+      "id": ""
+    }
+  }
+}
