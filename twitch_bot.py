@@ -223,7 +223,8 @@ class AlertComponent(commands.Component):
     # 手動お遊び用コマンド
     @commands.command(name="make_card")
     async def make_card_command(self, ctx: commands.Context, name: str = None) -> None:
-        if not is_owner_or_bot(ctx.author.id):
+        author_id = ctx.author.id
+        if not is_owner_or_bot(author_id):
             await ctx.send(f"@{ctx.author.name} このコマンドはモデレーター以上のみ使用できます。")
             return
 
@@ -231,11 +232,11 @@ class AlertComponent(commands.Component):
         target_raw_name = name if name else ctx.author.name
 
         class MockRaid:
-            def __init__(self, uname: str):
-                self.from_broadcaster = type("User", (), {"id": "12345", "name": uname})()
+            def __init__(self, uid: str, uname: str):
+                self.from_broadcaster = type("User", (), {"id": uid, "name": uname})()
                 self.viewer_count = 1
 
-        await self.event_raid(MockRaid(target_raw_name))
+        await self.event_raid(MockRaid(author_id, target_raw_name))
         # await ctx.send(f"【AIカード生成】{target_raw_name} さんのカードデータを生成し、ローカルに保存しました！")
 
     @commands.command(name="repost")
