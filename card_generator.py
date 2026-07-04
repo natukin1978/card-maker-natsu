@@ -86,6 +86,7 @@ class CardGenerator:
                         "A masterful, full-fledged anime-style character illustration, reimagining the input profile icon into a highly detailed single artwork. "
                         "While faithfully inheriting the core visual identity, character features, and color palette of the input icon, dynamically render the scene based on the following specific descriptions: "
                         f"{image_prompt} "
+                        ", dynamic action pose, dramatic low-angle shot."
                         "Strictly ensure there are absolutely no card frames, borders, text, user interface elements, or game statistics displayed in the final image."
                     },
                     {
