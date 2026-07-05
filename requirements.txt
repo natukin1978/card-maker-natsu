@@ -6,5 +6,6 @@ asqlite @ git+https://github.com/Rapptz/asqlite.git
 
 fastapi
 uvicorn[standard]
+python-multipart
 
 jinja2

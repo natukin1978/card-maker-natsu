@@ -91,6 +91,34 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         g.ws_manager.disconnect(websocket)
 
+@app.post("/cards/upload")
+async def upload_combined_card(
+    file: UploadFile = File(...),
+    user_name: str = Form(...),
+    rarity: str = Form(...)
+):
+    try:
+        # 1. フロントエンドから送られてきた画像データを読み込む
+        card_bytes = await file.read()
+
+        # 2. ローカル環境への保存処理
+        save_dir = "generated_cards"
+        os.makedirs(save_dir, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filepath = os.path.join(save_dir, f"{user_name}_{timestamp}.png")
+
+        with open(filepath, "wb") as f:
+            f.write(card_bytes)
+
+        logger.info(f"フロントエンドから受信した合成済カードを保存しました: {filepath}")
+
+        # logger.info(f"Discordへのカード画像の投稿が完了しました: {user_name}")
+        return {"status": "success", "filepath": filepath}
+
+    except Exception as e:
+        logger.error(f"合成済カードの処理中にエラーが発生しました: {e}")
+        return {"status": "error", "message": str(e)}
+
 # FastAPIを裏側で動かすための非同期タスク
 async def run_web_server():
     config = uvicorn.Config(app, host="127.0.0.1", port=34510, log_level="info")
