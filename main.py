@@ -64,7 +64,6 @@ class ConnectionManager:
 # グローバルにマネージャーを保持
 g.ws_manager = ConnectionManager()
 
-# --- FastAPIの初期化 ---
 app = FastAPI()
 
 origins = [
@@ -103,7 +102,13 @@ async def websocket_endpoint(websocket: WebSocket):
             logger.debug(data)
             # 必要であればクライアントからの命令をここで処理
     except WebSocketDisconnect:
+        logger.info(f"Client #{id} disconnected normally")
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+    finally:
+        # 正常終了でも異常終了でも必ずリストから削除
         g.ws_manager.disconnect(websocket)
+        logger.info(f"Cleanup for Client #{id} completed")
 
 @app.post("/cards/upload")
 async def upload_combined_card(
