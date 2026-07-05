@@ -50,7 +50,6 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({ card, onClose }) =
         color: "white",
         borderRadius: "20px",
         border: "2px solid rgba(255, 0, 127, 0.6)",
-        boxShadow: "0 0 30px rgba(255, 0, 127, 0.3), inset 0 0 15px rgba(255, 255, 255, 0.05)",
         overflow: "hidden",
         position: "relative", // ホログラムレイヤーの基準
       }}

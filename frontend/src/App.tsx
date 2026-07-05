@@ -31,7 +31,7 @@ function App() {
       // 演出のフェードインやアニメーションが落ち着くのを少し待つ
       const timer = setTimeout(async () => {
         await captureAndUploadCard(currentCard.display_name, currentCard.title);
-      }, 5000);
+      }, 2000);
 
       return () => clearTimeout(timer);
     }
@@ -46,7 +46,21 @@ function App() {
       const canvas = await html2canvas(cardContainerRef.current, {
         useCORS: true,        // Twitchのアイコン画像など、外部URLの画像を読み込むために必須
         scale: 2,             // 高画質化（2倍サイズ）
-        backgroundColor: null // 背景を透過させる
+        backgroundColor: null,// 背景を透過させる
+        onclone: (clonedDoc) => {
+          { // グラデーションは不要
+            const holoLayer = clonedDoc.querySelector('.holo-shimmer-layer');
+            if (holoLayer) {
+              holoLayer.remove();
+            }
+          }
+          { // 画像が半透明になってしまい保存画像に悪影響があるので削除する
+            const animatedContainer = clonedDoc.querySelector('.card-animate-container');
+            if (animatedContainer) {
+              animatedContainer.classList.remove('card-animate-container');
+            }
+          }
+        }
       });
 
       // CanvasをBlob（バイナリデータ）に変換
