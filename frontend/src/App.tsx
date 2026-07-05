@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import ReconnectingWebSocket from "reconnecting-websocket";
 import { CharacterCard } from "./components/CharacterCard";
-import { soundManager } from "./SoundManager";
+import { soundManager } from "./components/SoundManager";
 import type { CharacterCardData } from "./types/card";
 
 function App() {
