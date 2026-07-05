@@ -2,12 +2,22 @@ import asyncio
 import logging
 import os
 import sys
+from datetime import datetime
 from typing import List
 
 import asqlite
 import uvicorn
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import (
+    FastAPI,
+    File,
+    Form,
+    HTTPException,
+    UploadFile,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 import global_value as g
@@ -71,12 +81,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/card-maker-natsu/output/{filename}")
+async def get_card_image(filename: str):
+    filepath = os.path.join("output", filename)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Image not found")
+    return FileResponse(filepath, media_type="image/png")
+
+@app.get("/output/{filename}")
+async def get_card_image_alt(filename: str):
+    filepath = os.path.join(g.base_dir, "output", filename)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Image not found")
+    return FileResponse(filepath, media_type="image/png")
+
+# 静的マウントなどの設定は、関数の「下」に記述する ---
 os.makedirs("output", exist_ok=True)
-# output フォルダを静的ファイルとして公開
-app.mount("/card-maker-natsu/output", StaticFiles(directory="output"), name="output")
 output_dir = os.path.join(g.base_dir, "output")
 os.makedirs(output_dir, exist_ok=True)
-app.mount("/output", StaticFiles(directory=output_dir), name="output")
 
 # WebSocket エンドポイント (ws://localhost:34510/ws)
 @app.websocket("/ws")

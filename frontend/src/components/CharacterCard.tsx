@@ -62,8 +62,9 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({ card, onClose }) =
       <div style={{ position: "relative", width: "100%", aspectRatio: "1 / 1" }}>
         {card.image_url && (
           <img
-            src={card.image_url}
+            src={card.image_url ? `${card.image_url}?t=${Date.now()}` : ""}
             alt="Character"
+            crossOrigin="anonymous"
             style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
         )}
