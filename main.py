@@ -88,13 +88,6 @@ async def get_card_image(filename: str):
         raise HTTPException(status_code=404, detail="Image not found")
     return FileResponse(filepath, media_type="image/png")
 
-@app.get("/output/{filename}")
-async def get_card_image_alt(filename: str):
-    filepath = os.path.join(g.base_dir, "output", filename)
-    if not os.path.exists(filepath):
-        raise HTTPException(status_code=404, detail="Image not found")
-    return FileResponse(filepath, media_type="image/png")
-
 # 静的マウントなどの設定は、関数の「下」に記述する ---
 os.makedirs("output", exist_ok=True)
 output_dir = os.path.join(g.base_dir, "output")
