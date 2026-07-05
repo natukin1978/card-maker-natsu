@@ -151,12 +151,12 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({ card, onClose }) =
         >
           <div>
             <span style={{ color: "#aaa", fontSize: "12px" }}>ATK</span>{" "}
-            <b style={{ color: "#ff5252", fontSize: "18px" }}>{card.attack_power}</b>
+            <b className="count-display atk-display">{card.attack_power}</b>
           </div>
           <div style={{ width: "1px", backgroundColor: "rgba(255,255,255,0.2)" }}></div>
           <div>
             <span style={{ color: "#aaa", fontSize: "12px" }}>DEF</span>{" "}
-            <b style={{ color: "#4caf50", fontSize: "18px" }}>{card.defense_power}</b>
+            <b className="count-display def-display">{card.defense_power}</b>
           </div>
         </div>
 

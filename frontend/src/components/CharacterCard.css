@@ -31,6 +31,31 @@
   animation: cardFadeOut 0.5s cubic-bezier(0.7, 0, 0.84, 0) forwards;
 }
 
+.count-display {
+  font-size: 1.8em;
+  font-weight: bold;
+  color: #ffffff;
+  line-height: 1;
+}
+
+/* 🟥 ATK専用：赤フチ */
+.atk-display {
+  text-shadow:
+    1px  1px 0 #ff5252,
+   -1px -1px 0 #ff5252,
+    1px -1px 0 #ff5252,
+   -1px  1px 0 #ff5252;
+}
+
+/* 🟩 DEF専用：緑フチ */
+.def-display {
+  text-shadow:
+    1px  1px 0 #4caf50,
+   -1px -1px 0 #4caf50,
+    1px -1px 0 #4caf50,
+   -1px  1px 0 #4caf50;
+}
+
 /* 3. ホログラム加工（煌めきループ） */
 @keyframes holoShimmer {
   0% {
