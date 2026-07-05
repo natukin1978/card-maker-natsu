@@ -2,13 +2,22 @@ import asyncio
 import logging
 import os
 import sys
+from datetime import datetime
 from typing import List
 
 import asqlite
 import uvicorn
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import (
+    FastAPI,
+    File,
+    Form,
+    HTTPException,
+    UploadFile,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 import global_value as g
 from config_helper import read_config
@@ -71,12 +80,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/card-maker-natsu/output/{filename}")
+async def get_card_image(filename: str):
+    filepath = os.path.join("output", filename)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Image not found")
+    return FileResponse(filepath, media_type="image/png")
+
+# 静的マウントなどの設定は、関数の「下」に記述する ---
 os.makedirs("output", exist_ok=True)
-# output フォルダを静的ファイルとして公開
-app.mount("/card-maker-natsu/output", StaticFiles(directory="output"), name="output")
 output_dir = os.path.join(g.base_dir, "output")
 os.makedirs(output_dir, exist_ok=True)
-app.mount("/output", StaticFiles(directory=output_dir), name="output")
 
 # WebSocket エンドポイント (ws://localhost:34510/ws)
 @app.websocket("/ws")
@@ -90,6 +104,34 @@ async def websocket_endpoint(websocket: WebSocket):
             # 必要であればクライアントからの命令をここで処理
     except WebSocketDisconnect:
         g.ws_manager.disconnect(websocket)
+
+@app.post("/cards/upload")
+async def upload_combined_card(
+    file: UploadFile = File(...),
+    user_name: str = Form(...),
+    rarity: str = Form(...)
+):
+    try:
+        # 1. フロントエンドから送られてきた画像データを読み込む
+        card_bytes = await file.read()
+
+        # 2. ローカル環境への保存処理
+        save_dir = "generated_cards"
+        os.makedirs(save_dir, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filepath = os.path.join(save_dir, f"{user_name}_{timestamp}.png")
+
+        with open(filepath, "wb") as f:
+            f.write(card_bytes)
+
+        logger.info(f"フロントエンドから受信した合成済カードを保存しました: {filepath}")
+
+        # logger.info(f"Discordへのカード画像の投稿が完了しました: {user_name}")
+        return {"status": "success", "filepath": filepath}
+
+    except Exception as e:
+        logger.error(f"合成済カードの処理中にエラーが発生しました: {e}")
+        return {"status": "error", "message": str(e)}
 
 # FastAPIを裏側で動かすための非同期タスク
 async def run_web_server():

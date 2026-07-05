@@ -50,7 +50,6 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({ card, onClose }) =
         color: "white",
         borderRadius: "20px",
         border: "2px solid rgba(255, 0, 127, 0.6)",
-        boxShadow: "0 0 30px rgba(255, 0, 127, 0.3), inset 0 0 15px rgba(255, 255, 255, 0.05)",
         overflow: "hidden",
         position: "relative", // ホログラムレイヤーの基準
       }}
@@ -62,8 +61,9 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({ card, onClose }) =
       <div style={{ position: "relative", width: "100%", aspectRatio: "1 / 1" }}>
         {card.image_url && (
           <img
-            src={card.image_url}
+            src={card.image_url ? `${card.image_url}?t=${Date.now()}` : ""}
             alt="Character"
+            crossOrigin="anonymous"
             style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
         )}
@@ -151,12 +151,12 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({ card, onClose }) =
         >
           <div>
             <span style={{ color: "#aaa", fontSize: "12px" }}>ATK</span>{" "}
-            <b style={{ color: "#ff5252", fontSize: "18px" }}>{card.attack_power}</b>
+            <b className="count-display atk-display">{card.attack_power}</b>
           </div>
           <div style={{ width: "1px", backgroundColor: "rgba(255,255,255,0.2)" }}></div>
           <div>
             <span style={{ color: "#aaa", fontSize: "12px" }}>DEF</span>{" "}
-            <b style={{ color: "#4caf50", fontSize: "18px" }}>{card.defense_power}</b>
+            <b className="count-display def-display">{card.defense_power}</b>
           </div>
         </div>
 
