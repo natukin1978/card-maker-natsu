@@ -214,17 +214,31 @@ class AlertComponent(commands.Component):
 
 
     # FastAPIとチャットコマンド両方から使える「新規生成コアロジック」
-    async def process_make_card(self, raw_name: str, event_type: str = "raid", viewers: int = 1, ctx: commands.Context = None) -> None:
-        logger.info(f"[Card Make] 処理開始: {raw_name} (Event: {event_type}, Viewers: {viewers})")
+    async def process_make_card(self, raw_name: str, event_type: str = "raid", event_value: int = 1, ctx: commands.Context = None) -> None:
+        logger.info(f"[Card Make] 処理開始: {raw_name} (Event: {event_type}, Value: {event_value})")
+
+        # イベントの日本語名と、値の意味をマッピングする
+        event_mapping = {
+            "raid": {"label": "レイド（応援枠）", "unit": f"{event_value}人の視聴者を引き連れての襲来"},
+            "sub": {"label": "サブスクリプション", "unit": f"継続 {event_value}ヶ月目の登録"},
+            "cheer": {"label": "ビッツ（投げ銭）", "unit": f"{event_value} ビッツの応援"},
+            "follow": {"label": "新規フォロー", "unit": "新たなフォローの絆"}
+        }
+
+        # 万が一、未定義のイベントが来たらデフォルト値にする
+        mapping = event_mapping.get(event_type, {"label": event_type, "unit": f"規模・数値: {event_value}"})
+
+        event_label = mapping["label"]  # 例: "サブスクリプション"
+        event_power_text = mapping["unit"]  # 例: "継続 3ヶ月目の登録"
 
         # ユーザー情報（アイコン・表示名）の取得
         image_bytes, mime_type, display_name = await self._fetch_profile_image_and_display_name(raw_name)
 
-        # パラメータの生成（選択された event_type をここで連動させます！）
+        # パラメータの生成
         card_data = await self.card_generator.generate_character(
             user_name=display_name,
-            event_type=event_type,
-            viewers=viewers,
+            event_label=event_label,
+            event_power_text=event_power_text,
             image_bytes=image_bytes,
             mime_type=mime_type
         )

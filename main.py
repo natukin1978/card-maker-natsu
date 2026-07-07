@@ -139,10 +139,10 @@ async def upload_combined_card(
         return {"status": "error", "message": str(e)}
 
 @app.get("/cards/generate")
-async def generate_card(name: str, event: str = "raid"):
+async def generate_card(name: str, event: str = "raid", value: int = 1):
     try:
         compo = g.bot.get_component("AlertComponent")
-        await compo.process_make_card(name, event_type=event)
+        await compo.process_make_card(raw_name=name, event_type=event, event_value=value)
         return {"status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

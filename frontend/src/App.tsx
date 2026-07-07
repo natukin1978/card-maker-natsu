@@ -2,11 +2,10 @@ import html2canvas from "html2canvas";
 import { useEffect, useRef, useState } from "react";
 import ReconnectingWebSocket from "reconnecting-websocket";
 
+import { AdminPanel } from "./components/AdminPanel";
 import { CharacterCard } from "./components/CharacterCard";
 import { soundManager } from "./components/SoundManager";
 import type { CharacterCardData } from "./types/card";
-
-const BASE_URL = "http://localhost:34510";
 
 function App() {
     const params = new URLSearchParams(window.location.search);
@@ -15,36 +14,11 @@ function App() {
     const volumeParam = params.get("vol");
     const soundVolume = volumeParam !== null ? parseInt(volumeParam, 10) / 100 : 0;
 
-    // 管理画面用のステートたち
-    const [action, setAction] = useState("make_card"); // アクション (make_card / repost)
-    const [eventType, setEventType] = useState("raid"); // イベントの種類 (raid / sub / etc...)
-    const [targetName, setTargetName] = useState("");
-
     const [currentCard, setCurrentCard] = useState<CharacterCardData | null>(null);
     const [active, setActive] = useState<boolean>(false);
     const socketRef = useRef<ReconnectingWebSocket | null>(null);
 
     const cardContainerRef = useRef<HTMLDivElement>(null);
-
-    const handleExecute = async () => {
-        if (!targetName) return alert("ユーザー名を入力してください");
-
-        try {
-            let url = "";
-            if (action === "make_card") {
-                // 新規生成
-                url = `${BASE_URL}/cards/generate?name=${targetName}&event=${eventType}`;
-            } else if (action === "repost") {
-                // 過去作再表示
-                url = `${BASE_URL}/cards/repost?name=${targetName}`;
-            }
-            if (url) {
-                await fetch(url);
-            }
-        } catch (error) {
-            console.error("カード取得エラー:", error);
-        }
-    };
 
     useEffect(() => {
         soundManager.register("kirakira", "kirakira2.mp3");
@@ -160,91 +134,7 @@ function App() {
         >
             {/* 管理モードの時だけ表示されるコントロールパネル */}
             {isAdmin && (
-                <div
-                    style={{
-                        position: "fixed",
-                        top: "15px",
-                        left: "15px",
-                        zIndex: 9999,
-                        background: "#1a1625", // 少し高級感のあるダーク背景
-                        border: "2px solid rgba(170, 59, 255, 0.4)",
-                        padding: "15px",
-                        borderRadius: "12px",
-                        display: "flex",
-                        gap: "12px",
-                        alignItems: "center",
-                        boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
-                    }}
-                >
-                    {/* ① アクション選択 (make_card / repost) */}
-                    <select
-                        value={action}
-                        onChange={(e) => setAction(e.target.value)}
-                        style={{
-                            padding: "6px 10px",
-                            borderRadius: "6px",
-                            background: "#2e2a3a",
-                            color: "white",
-                            border: "1px solid #444",
-                        }}
-                    >
-                        <option value="make_card">🃏 トレカ新規生成 (make_card)</option>
-                        <option value="repost">🔄 過去作を再表示 (repost)</option>
-                    </select>
-
-                    {/* ② イベントの種類選択 (💡 make_card の時だけ disabled を解除する) */}
-                    <select
-                        value={eventType}
-                        onChange={(e) => setEventType(e.target.value)}
-                        disabled={action !== "make_card"} // 👈 ここがポイント！条件に合わないとグレーアウトします
-                        style={{
-                            padding: "6px 10px",
-                            borderRadius: "6px",
-                            background: action === "make_card" ? "#2e2a3a" : "#1e1b24",
-                            color: action === "make_card" ? "white" : "#666",
-                            border: "1px solid #444",
-                            cursor: action === "make_card" ? "pointer" : "not-allowed",
-                        }}
-                    >
-                        <option value="raid">⚔️ レイド (Raid)</option>
-                        <option value="sub">💎 サブスク (Subscription)</option>
-                        <option value="cheer">✨ ビッツ (Cheer)</option>
-                        <option value="follow">🔰 フォロー (Follow)</option>
-                    </select>
-
-                    {/* ③ ユーザー名入力欄 */}
-                    <input
-                        type="text"
-                        placeholder="対象のユーザー名"
-                        value={targetName}
-                        onChange={(e) => setTargetName(e.target.value)}
-                        style={{
-                            padding: "6px 10px",
-                            borderRadius: "6px",
-                            background: "#2e2a3a",
-                            color: "white",
-                            border: "1px solid #444",
-                            width: "150px",
-                        }}
-                    />
-
-                    {/* ④ 実行ボタン */}
-                    <button
-                        type="button"
-                        onClick={handleExecute}
-                        style={{
-                            padding: "6px 14px",
-                            borderRadius: "6px",
-                            background: "#aa3bff",
-                            color: "white",
-                            border: "none",
-                            fontWeight: "bold",
-                            cursor: "pointer",
-                        }}
-                    >
-                        実行！
-                    </button>
-                </div>
+                <AdminPanel/>
             )}
 
             {active && currentCard && (
