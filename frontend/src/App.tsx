@@ -129,7 +129,6 @@ function App() {
                 justifyContent: "center",
                 alignItems: "center",
                 overflow: "hidden",
-                fontFamily: "'Helvetica Neue', Arial, sans-serif",
             }}
         >
             {/* 管理モードの時だけ表示されるコントロールパネル */}
