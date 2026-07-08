@@ -33,7 +33,7 @@ function App() {
             // 演出のフェードインやアニメーションが落ち着くのを少し待つ
             const timer = setTimeout(async () => {
                 await captureAndUploadCard(currentCard.display_name, currentCard.title);
-            }, 2000);
+            }, 5000);
 
             return () => clearTimeout(timer);
         }
