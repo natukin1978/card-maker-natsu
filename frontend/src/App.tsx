@@ -4,6 +4,7 @@ import ReconnectingWebSocket from "reconnecting-websocket";
 
 import { AdminPanel } from "./components/AdminPanel";
 import { CharacterCard } from "./components/CharacterCard";
+import { LensingAnimation } from "./components/LensingAnimation";
 import { soundManager } from "./components/SoundManager";
 import type { CharacterCardData } from "./types/card";
 
@@ -18,10 +19,15 @@ function App() {
     const [active, setActive] = useState<boolean>(false);
     const socketRef = useRef<ReconnectingWebSocket | null>(null);
 
+    // 魔法陣の演出用のステート
+    const [isLensing, setIsLensing] = useState<boolean>(false);
+    const [lensingUser, setLensingUser] = useState<string>("");
+
     const cardContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         soundManager.register("kirakira", "kirakira2.mp3");
+        // 必要であればここで魔法陣展開用の怪しいSE（例: magic.mp3）を登録できます
     }, []);
 
     useEffect(() => {
@@ -42,13 +48,12 @@ function App() {
     // 実際の画像化とAPI送信を行う関数
     const captureAndUploadCard = async (displayName: string, title: string) => {
         if (!cardContainerRef.current) return;
-
         try {
             // DOMをCanvasに変換（高画質化のためにscaleを2に設定）
             const canvas = await html2canvas(cardContainerRef.current, {
-                useCORS: true, // Twitchのアイコン画像など、外部URLの画像を読み込むために必須
-                scale: 2, // 高画質化（2倍サイズ）
-                backgroundColor: null, // 背景を透過させる
+                useCORS: true,
+                scale: 2,
+                backgroundColor: null,
                 onclone: (clonedDoc) => {
                     {
                         // グラデーションは不要
@@ -59,8 +64,7 @@ function App() {
                     }
                     {
                         // 画像が半透明になってしまい保存画像に悪影響があるので削除する
-                        const animatedContainer =
-                            clonedDoc.querySelector(".card-animate-container");
+                        const animatedContainer = clonedDoc.querySelector(".card-animate-container");
                         if (animatedContainer) {
                             animatedContainer.classList.remove("card-animate-container");
                         }
@@ -68,25 +72,20 @@ function App() {
                 },
             });
 
-            // CanvasをBlob（バイナリデータ）に変換
             canvas.toBlob(async (blob) => {
                 if (!blob) return;
-
                 const formData = new FormData();
                 formData.append("file", blob, `${displayName}_card.png`);
                 formData.append("user_name", displayName);
                 formData.append("rarity", title);
 
-                // FastAPIの合成画像アップロード用API（ポート34510に合わせて調整しています）
                 const response = await fetch("http://localhost:34510/cards/upload", {
                     method: "POST",
                     body: formData,
                 });
 
                 if (response.ok) {
-                    console.log(
-                        `[Success] ${displayName} さんの完成版カードをサーバーに送信しました。`,
-                    );
+                    console.log(`[Success] ${displayName} さんの完成版カードをサーバーに送信しました。`);
                 } else {
                     console.error("[Error] カード画像の送信に失敗しました:", response.statusText);
                 }
@@ -97,14 +96,25 @@ function App() {
     };
 
     useEffect(() => {
-        // ポート 34510 のWebSocketに接続
         const rws = new ReconnectingWebSocket("ws://localhost:34510/ws");
         socketRef.current = rws;
 
         rws.onmessage = (event) => {
             try {
                 const message = JSON.parse(event.data);
+
+                // バックエンドから「今からカード作り始めるよ」が来たら魔法陣ON
+                if (message.event === "START_GENERATION") {
+                    setCurrentCard(null);
+                    setActive(false);
+                    setLensingUser(message.data?.user_name || "");
+                    setIsLensing(true);
+                    // ここで soundManager.play("magic") なども可能！
+                }
+
+                // カードが完成したら魔法陣を消してカードをドーン！
                 if (message.event === "NEW_CARD") {
+                    setIsLensing(false);
                     setCurrentCard(message.data);
                     setTimeout(() => {
                         soundManager.play("kirakira");
@@ -132,8 +142,11 @@ function App() {
             }}
         >
             {/* 管理モードの時だけ表示されるコントロールパネル */}
-            {isAdmin && (
-                <AdminPanel/>
+            {isAdmin && <AdminPanel />}
+
+            {/* 錬成中アニメーションの表示位置 */}
+            {isLensing && (
+                <LensingAnimation userName={lensingUser} />
             )}
 
             {active && currentCard && (
