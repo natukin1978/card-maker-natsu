@@ -120,22 +120,14 @@ class AlertComponent(commands.Component):
 
     @commands.Component.listener()
     async def event_raid(self, payload: twitchio.ChannelRaid) -> None:
+        # 💡 「自動検出は止めたい」とのことでしたので、もし完全に無効化する場合は
+        # このメソッドごとコメントアウトするか、以下のようにログだけに留めて処理をスキップしてください。
         raw_name = payload.from_broadcaster.name
         viewers = payload.viewer_count
-        logger.info(f"[Raid 検知] {raw_name} ({viewers} viewers)")
+        logger.info(f"[Raid 自動検知（スキップ中）] {raw_name} ({viewers} viewers)")
 
-        image_bytes, mime_type, display_name = await self._fetch_profile_image_and_display_name(raw_name)
-
-        card_data = await self.card_generator.generate_character(
-            user_name=display_name,
-            event_type="raid",
-            viewers=viewers,
-            image_bytes=image_bytes,
-            mime_type=mime_type
-        )
-
-        # 修正：image_bytes と mime_type も後ろに渡す
-        await self._process_card_data(raw_name, display_name, card_data, image_bytes, mime_type)
+        # もし自動検知も残すなら、以下を有効にすれば手動と同じルートで動きます
+        # await self.process_make_card(raw_name=raw_name, event_type="raid", viewers=viewers)
 
     # ユーザー情報（アイコン・表示名）を取得するメソッド
     async def _fetch_profile_image_and_display_name(self, raw_name: str) -> tuple[bytes | None, str | None, str]:
@@ -180,7 +172,7 @@ class AlertComponent(commands.Component):
         output_dir = "output"
         os.makedirs(output_dir, exist_ok=True)
 
-        # 1. Banana APIを呼び出してイラスト（画像）を生成（アイコン画像も一緒に渡す！）
+        # Banana APIを呼び出してイラスト（画像）を生成（アイコン画像も一緒に渡す！）
         generated_image_bytes = await self.card_generator.generate_image(
             image_prompt=card_data.image_prompt,
             icon_bytes=icon_bytes,
@@ -197,7 +189,7 @@ class AlertComponent(commands.Component):
         else:
             logger.error("[Warning] 画像生成に失敗したため、イメージファイルの保存をスキップします。")
 
-        # 2. パラメーター（JSON）を保存
+        # パラメーター（JSON）を保存
         card_dict = card_data.model_dump()
         card_dict["display_name"] = display_name
         card_dict["image_path"] = f"/{output_dir}/{file_base_name}.png" if generated_image_bytes else None
@@ -220,59 +212,62 @@ class AlertComponent(commands.Component):
 
         logger.info("--------------------------------------------------")
 
-    # 手動お遊び用コマンド
-    @commands.command(name="make_card")
-    async def make_card_command(self, ctx: commands.Context, name: str = None) -> None:
-        author_id = ctx.author.id
-        if not is_owner_or_bot(author_id):
-            await ctx.send(f"@{ctx.author.name} このコマンドはモデレーター以上のみ使用できます。")
-            return
 
-        # コマンド引数、または送信者の英小文字名
-        target_raw_name = name if name else ctx.author.name
+    # FastAPIとチャットコマンド両方から使える「新規生成コアロジック」
+    async def process_make_card(self, raw_name: str, event_type: str = "raid", event_value: int = 1, ctx: commands.Context = None) -> None:
+        logger.info(f"[Card Make] 処理開始: {raw_name} (Event: {event_type}, Value: {event_value})")
 
-        class MockRaid:
-            def __init__(self, uid: str, uname: str):
-                self.from_broadcaster = type("User", (), {"id": uid, "name": uname})()
-                self.viewer_count = 1
+        # イベントの日本語名と、値の意味をマッピングする
+        event_mapping = {
+            "raid": {"label": "レイド（応援枠）", "unit": f"{event_value}人の視聴者を引き連れての襲来"},
+            "sub": {"label": "サブスクリプション", "unit": f"継続 {event_value}ヶ月目の登録"},
+            "cheer": {"label": "ビッツ（投げ銭）", "unit": f"{event_value} ビッツの応援"},
+            "follow": {"label": "新規フォロー", "unit": "新たなフォローの絆"}
+        }
 
-        await self.event_raid(MockRaid(author_id, target_raw_name))
-        # await ctx.send(f"【AIカード生成】{target_raw_name} さんのカードデータを生成し、ローカルに保存しました！")
+        # 万が一、未定義のイベントが来たらデフォルト値にする
+        mapping = event_mapping.get(event_type, {"label": event_type, "unit": f"規模・数値: {event_value}"})
 
-    @commands.command(name="repost")
-    async def command_repost(self, ctx: commands.Context, target_user: str = None) -> None:
-        """
-        [デバッグ用] 保存済みのJSONデータを読み込んでWebSocketに再送する
-        使い方: !repost ユーザー名
-        """
-        if not is_owner_or_bot(ctx.author.id):
-            await ctx.send(f"@{ctx.author.name} このコマンドはモデレーター以上のみ使用できます。")
-            return
+        event_label = mapping["label"]  # 例: "サブスクリプション"
+        event_power_text = mapping["unit"]  # 例: "継続 3ヶ月目の登録"
 
-        if not target_user:
-            await ctx.send("ユーザー名を指定してください。例: !repost fuyuka_ai")
-            return
+        # ユーザー情報（アイコン・表示名）の取得
+        image_bytes, mime_type, display_name = await self._fetch_profile_image_and_display_name(raw_name)
 
-        # 小文字にしてファイル名と一致させる
+        # パラメータの生成
+        card_data = await self.card_generator.generate_character(
+            user_name=display_name,
+            event_label=event_label,
+            event_power_text=event_power_text,
+            image_bytes=image_bytes,
+            mime_type=mime_type
+        )
+
+        # イラスト生成・保存・WebSocket配信
+        await self._process_card_data(raw_name, display_name, card_data, image_bytes, mime_type)
+
+    # FastAPIとチャットコマンド両方から使える「再表示コアロジック」
+    async def process_repost(self, target_user: str, ctx: commands.Context = None) -> None:
+        logger.info(f"[Card Repost] 処理開始: {target_user}")
+
         file_base_name = target_user.lower()
         output_dir = "output"
         json_path = os.path.join(output_dir, f"{file_base_name}.json")
 
-        # 1. そもそもファイルが存在するかチェック
+        # ファイルが存在するかチェック
         if not os.path.exists(json_path):
-            await ctx.send(f"[Error] {target_user} のカードデータが見つかりません。")
+            if ctx:
+                await ctx.send(f"[Error] {target_user} のカードデータが見つかりません。")
             logger.error(f"[Repost] ファイルが見つかりません: {json_path}")
             return
 
         try:
-            logger.info(f"[Repost] {json_path} からデータをロード中...")
-            # 2. JSONファイルを読み込む
+            # JSONファイルを読み込む
             with open(json_path, "r", encoding="utf-8") as f:
                 card_dict = json.load(f)
 
-            # 3. WebSocket配信用に画像URLを組み立て
+            # WebSocket配信用に画像URLを組み立てて送信
             if hasattr(g, "ws_manager"):
-                # すでにフルURLが入っていない場合のみ組み立てる
                 if card_dict.get("image_path") and not card_dict.get("image_url"):
                     card_dict["image_url"] = f"{BACKEND_SERVER_URL}/card-maker-natsu{card_dict['image_path']}"
 
@@ -281,13 +276,37 @@ class AlertComponent(commands.Component):
                     "event": "NEW_CARD",
                     "data": card_dict,
                 })
-                # await ctx.send(f"[Success] {card_dict['display_name']} のカードを再送しました！")
+
             else:
                 logger.error("[Warning] WebSocketマネージャー(g.ws_manager)が準備できていません。")
 
         except Exception as e:
             logger.error(f"[Error] Repost処理中に例外が発生しました: {e}")
-            await ctx.send("データの再送中にエラーが発生しました。")
+            if ctx:
+                await ctx.send("データの再送中にエラーが発生しました。")
+
+    @commands.command(name="make_card")
+    async def make_card_command(self, ctx: commands.Context, name: str = None) -> None:
+        author_id = ctx.author.id
+        if not is_owner_or_bot(author_id):
+            await ctx.send(f"@{ctx.author.name} このコマンドはモデレーター以上のみ使用できます。")
+            return
+
+        target_raw_name = name if name else ctx.author.name
+
+        await self.process_make_card(raw_name=target_raw_name, event_type="raid", viewers=1, ctx=ctx)
+
+    @commands.command(name="repost")
+    async def command_repost(self, ctx: commands.Context, target_user: str = None) -> None:
+        if not is_owner_or_bot(ctx.author.id):
+            await ctx.send(f"@{ctx.author.name} このコマンドはモデレーター以上のみ使用できます。")
+            return
+
+        if not target_user:
+            await ctx.send("ユーザー名を指定してください。例: !repost fuyuka_ai")
+            return
+
+        await self.process_repost(target_user=target_user, ctx=ctx)
 
 def is_owner_or_bot(id) -> bool:
     return id in [g.config["twitch"]["owner"]["id"], g.config["twitch"]["bot"]["id"]]

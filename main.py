@@ -117,10 +117,10 @@ async def upload_combined_card(
     rarity: str = Form(...)
 ):
     try:
-        # 1. フロントエンドから送られてきた画像データを読み込む
+        # フロントエンドから送られてきた画像データを読み込む
         card_bytes = await file.read()
 
-        # 2. ローカル環境への保存処理
+        # ローカル環境への保存処理
         save_dir = "generated_cards"
         os.makedirs(save_dir, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -138,6 +138,24 @@ async def upload_combined_card(
         logger.error(f"合成済カードの処理中にエラーが発生しました: {e}")
         return {"status": "error", "message": str(e)}
 
+@app.get("/cards/generate")
+async def generate_card(name: str, event: str = "raid", value: int = 1):
+    try:
+        compo = g.bot.get_component("AlertComponent")
+        await compo.process_make_card(raw_name=name, event_type=event, event_value=value)
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/cards/repost")
+async def repost_card(name: str):
+    try:
+        compo = g.bot.get_component("AlertComponent")
+        await compo.process_repost(name)
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 # FastAPIを裏側で動かすための非同期タスク
 async def run_web_server():
     config = uvicorn.Config(app, host="127.0.0.1", port=34510, log_level="info")
@@ -151,18 +169,18 @@ async def main():
     # StarletteAdapter の警告を抑止したい…
     logging.getLogger("twitchio.web.aio_adapter").setLevel(logging.ERROR)
 
-    bot = None
+    g.bot = None
     async with asqlite.create_pool("tokens.db") as tdb:
         tokens, subs = await setup_database(tdb)
 
-        bot = TwitchBot(token_database=tdb, subs=subs)
+        g.bot = TwitchBot(token_database=tdb, subs=subs)
         for pair in tokens:
-            await bot.add_token(*pair)
+            await g.bot.add_token(*pair)
 
         # Webサーバー(FastAPI) と TwitchBot を並行して同時に走らせる
         await asyncio.gather(
             run_web_server(),
-            bot.start(load_tokens=False, with_adapter=False)
+            g.bot.start(load_tokens=False, with_adapter=False)
         )
 
 if __name__ == "__main__":

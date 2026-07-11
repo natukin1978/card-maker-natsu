@@ -27,22 +27,22 @@ class CardGenerator:
     async def generate_character(
         self,
         user_name: str,
-        event_type: str,
-        viewers: int = 0,
+        event_label: str,
+        event_power_text: str,
         image_bytes: bytes | None = None,
         mime_type: str | None = None
     ) -> CharacterParams:
 
         prompt_text = f"""
         あなたは凄腕のソーシャルゲームキャラクターデザイナーです。
-        Twitchでの配信イベント「{event_type}」が発生しました。
+        Twitchでの配信イベント「{event_label}」が発生しました。
         添付された画像（ユーザーのTwitchプロフィールアイコン）を分析し、その「中心的なモチーフや全体の雰囲気」を捉えてください。
 
         【image_prompt 出力の重要なルール（トークン最適化とクオリティ向上）】
         画像生成モデルが直接アイコン画像を参照して特徴を引き継ぐため、アイコンの細かなビジュアル（髪の色や服の形など）を一から十まで言葉で説明する必要はありません。
         代わりに、以下の要素に特化した、アニメ風ハイクオリティイラスト用の詳細な英語プロンプトを作成してください。
 
-        1. イベントの種類や規模（{viewers}人）に応じた「派手なエフェクト（魔法、オーラ、光など）」や「ドラマチックな構図・ポーズ」
+        1. イベントの規模・熱量（{event_power_text}）に応じた「派手なエフェクト（魔法、オーラ、光、お祝いの演出など）」や「ドラマチックな構図・ポーズ」
         2. ユーザー名（{user_name}）から連想される、衣装のアレンジや背景の世界観
         3. 枠線（カードフレーム）、文字、ゲームUI、ステータスアイコンなどを絶対に生成させないための指示（例: "single cohesive artwork, no border, no text, no UI" などの表現を含める）
 
