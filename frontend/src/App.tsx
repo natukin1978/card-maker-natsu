@@ -27,7 +27,7 @@ function App() {
 
     useEffect(() => {
         soundManager.register("kirakira", "kirakira2.mp3");
-        // 必要であればここで魔法陣展開用の怪しいSE（例: magic.mp3）を登録できます
+        soundManager.register("mad1"    , "magic-attack-darkness1.mp3");
     }, []);
 
     useEffect(() => {
@@ -109,7 +109,7 @@ function App() {
                     setActive(false);
                     setLensingUser(message.data?.user_name || "");
                     setIsLensing(true);
-                    // ここで soundManager.play("magic") なども可能！
+                    soundManager.play("mad1");
                 }
 
                 // カードが完成したら魔法陣を消してカードをドーン！
