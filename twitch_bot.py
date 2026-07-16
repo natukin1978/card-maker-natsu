@@ -1,6 +1,8 @@
 import json
 import logging
 import os
+
+# import time
 from typing import TYPE_CHECKING
 
 import asqlite
@@ -217,6 +219,12 @@ class AlertComponent(commands.Component):
     async def process_make_card(self, raw_name: str, event_type: str = "raid", event_value: int = 1, ctx: commands.Context = None) -> None:
         logger.info(f"[Card Make] 処理開始: {raw_name} (Event: {event_type}, Value: {event_value})")
 
+        if hasattr(g, "ws_manager"):
+            await g.ws_manager.broadcast_json({
+                "event": "START_GENERATION",
+                "data": {"user_name": raw_name},
+            })
+
         # イベントの日本語名と、値の意味をマッピングする
         event_mapping = {
             "raid": {"label": "レイド（応援枠）", "unit": f"{event_value}人の視聴者を引き連れての襲来"},
@@ -249,6 +257,13 @@ class AlertComponent(commands.Component):
     # FastAPIとチャットコマンド両方から使える「再表示コアロジック」
     async def process_repost(self, target_user: str, ctx: commands.Context = None) -> None:
         logger.info(f"[Card Repost] 処理開始: {target_user}")
+
+        # if hasattr(g, "ws_manager"):
+        #     await g.ws_manager.broadcast_json({
+        #         "event": "START_GENERATION",
+        #         "data": {"user_name": target_user},
+        #     })
+        #     time.sleep(7.5)
 
         file_base_name = target_user.lower()
         output_dir = "output"
