@@ -15,7 +15,7 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({ card, onClose }) =
         // 1. 経過したらフェードアウトフラグを立てる
         const displayTimer = setTimeout(() => {
             setIsFadingOut(true);
-        }, 15000);
+        }, 25000);
 
         return () => clearTimeout(displayTimer);
     }, []);
