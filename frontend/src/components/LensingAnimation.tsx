@@ -39,11 +39,21 @@ export const LensingAnimation: React.FC<LensingAnimationProps> = ({ userName }) 
           background: radial-gradient(circle, rgba(169,112,255,0.6) 0%, rgba(100,65,165,0.2) 50%, rgba(0,0,0,0) 70%);
           animation: aura-pulse 3s ease-in-out infinite;
         }
+        @keyframes magic-fade-in {
+          0% { transform: scale(0.5); opacity: 0; }
+          100% { transform: scale(1); opacity: 0.9; }
+        }
+        @keyframes magic-rotate {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
         .magic-circle-img {
           position: absolute;
           width: 100%;
           height: 100%;
-          animation: magic-rotate 12s linear infinite;
+          animation:
+            magic-fade-in 1s ease-out forwards,
+            magic-rotate 12s linear infinite;
           filter: drop-shadow(0 0 20px #6441a5);
         }
         .lensing-text {
