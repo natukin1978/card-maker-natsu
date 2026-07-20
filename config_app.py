@@ -30,10 +30,6 @@ from twitch_bot import (
 app = FastAPI()
 app.mount("/images", StaticFiles(directory="images", html=True), name="images")
 templates = Jinja2Templates(directory=get_resource_path("templates"))
-templates.env.globals.update(
-    CALLBACK_URL_BOT=constants.CALLBACK_URL_BOT,
-    CALLBACK_URL_OWNER=constants.CALLBACK_URL_OWNER,
-)
 
 CONFIG_FILE = "config.json"
 SCHEMA_FILE = "schema.json"
@@ -63,6 +59,8 @@ async def index(request: Request):
         context={
             "config": config_data,
             "schema": schema_data,
+            "callback_url_bot_base": constants.CALLBACK_URL_BOT,
+            "callback_url_owner_base": constants.CALLBACK_URL_OWNER,
         },
     )
 
