@@ -35,10 +35,11 @@
                 <fieldset>
                     <legend>TwitchのBOTアカウントでログインして「許可」してください。</legend>
                     <a
-                        href="{{CALLBACK_URL_BOT}}"
+                        id="bot_auth_link"
+                        href="#"
                         target="_blank" rel="noopener noreferrer"
                     >
-                        {{CALLBACK_URL_BOT}}
+                        ---
                     </a>
                 </fieldset>
             </div>
@@ -46,19 +47,23 @@
                 <fieldset>
                     <legend>Twitchの配信チャンネルアカウントでログインして「許可」してください。</legend>
                     <a
-                        href="{{CALLBACK_URL_OWNER}}"
+                        id="owner_auth_link"
+                        href="#"
                         target="_blank" rel="noopener noreferrer"
                     >
-                        {{CALLBACK_URL_OWNER}}
+                        ---
                     </a>
                 </fieldset>
             </div>
         </div>
 
         <script>
-            // Python側から渡されたデータをセット
+            // Python側から渡されたベースURLおよびデータを取得
             const schema = {{ schema | tojson }};
             const startVal = {{ config | tojson }};
+
+            const callbackUrlBotBase = {{ callback_url_bot_base | tojson }};
+            const callbackUrlOwnerBase = {{ callback_url_owner_base | tojson }};
 
             const editor = new JSONEditor(document.getElementById('editor_holder'), {
                 schema: schema,
@@ -69,6 +74,37 @@
                 disable_edit_json: true,
                 disable_properties: true,
                 object_layout: 'normal',
+            });
+
+            // Pythonで定義したベースURLの末尾に client_id を結合
+            function updateAuthLinks() {
+                const currentVal = editor.getValue();
+                const clientId = (currentVal && currentVal.twitch && currentVal.twitch.clientId) ? currentVal.twitch.clientId : '';
+
+                // ベースURLの末尾に &client_id=... を付加
+                const botUrl = `${callbackUrlBotBase}&client_id=${encodeURIComponent(clientId)}`;
+                const ownerUrl = `${callbackUrlOwnerBase}&client_id=${encodeURIComponent(clientId)}`;
+
+                // HTML要素の更新
+                const botLink = document.getElementById('bot_auth_link');
+                const ownerLink = document.getElementById('owner_auth_link');
+
+                if (botLink) {
+                    botLink.href = botUrl;
+                    botLink.textContent = botUrl;
+                }
+                if (ownerLink) {
+                    ownerLink.href = ownerUrl;
+                    ownerLink.textContent = ownerUrl;
+                }
+            }
+
+            // 初期表示時および入力変更時にリアルタイム更新
+            editor.on('ready', () => {
+                updateAuthLinks();
+            });
+            editor.on('change', () => {
+                updateAuthLinks();
             });
 
             document.getElementById('submit').addEventListener('click', () => {
