@@ -131,7 +131,7 @@ async def boot_callback():
     async with asqlite.create_pool("tokens.db") as tdb:
         tokens, subs = await setup_database(tdb)
 
-        g.bot = TwitchBot(token_database=tdb, subs=subs)
+        g.bot = TwitchBot(token_database=tdb, subs=[])
         for pair in tokens:
             await g.bot.add_token(*pair)
 
